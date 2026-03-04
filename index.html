@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Battery & Disk Neural Core - Power & Storage Analytics</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Animated Background -->
+  <div class="background-container">
+    <div class="gradient-bg"></div>
+    <canvas id="neuralNetwork"></canvas>
+  </div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Top Bar -->
+    <header class="top-bar glass-card">
+      <div class="top-bar-left">
+        <div class="system-status">
+          <div class="status-dot" id="statusDot"></div>
+          <span>NEURAL CORE ONLINE</span>
+        </div>
+      </div>
+      <div class="top-bar-center">
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+          <button class="tab-button tab-active" id="tabBattery">
+            <span class="tab-icon">⚡</span>BATTERY
+          </button>
+          <button class="tab-button" id="tabDisk">
+            <span class="tab-icon">💾</span>DISK
+          </button>
+        </div>
+      </div>
+      <div class="top-bar-right">
+        <div class="power-source" id="powerSource">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/>
+          </svg>
+          <span id="powerSourceText">AC</span>
+        </div>
+        <div class="timestamp" id="currentTime">--:--:--</div>
+      </div>
+    </header>
+
+    <!-- Battery View -->
+    <div id="batteryView" class="dashboard-view active">
+      <div class="dashboard-grid">
+        <!-- Battery Gauge Ring (Large Card) -->
+        <div class="card glass-card card-large card-animate" style="animation-delay: 0ms">
+          <div class="card-header">
+            <h3>BATTERY CORE</h3>
+            <div class="card-icon">⚡</div>
+          </div>
+          <div class="card-body">
+            <div class="battery-gauge">
+              <svg class="gauge-ring" viewBox="0 0 200 200">
+                <defs>
+                  <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#00f3ff" id="gaugeStop1"/>
+                    <stop offset="100%" stop-color="#0066ff" id="gaugeStop2"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="100" cy="100" r="85" class="gauge-bg"/>
+                <circle cx="100" cy="100" r="85" class="gauge-progress" id="gaugeProgress"/>
+              </svg>
+              <div class="gauge-center">
+                <div class="gauge-value" id="gaugeValue">--</div>
+                <div class="gauge-label">CHARGE</div>
+                <div class="gauge-time" id="gaugeTime">-- min</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Battery Status Display -->
+        <div class="card glass-card card-medium card-animate" style="animation-delay: 100ms">
+          <div class="card-header">
+            <h3>SYSTEM STATUS</h3>
+            <div class="card-icon">📊</div>
+          </div>
+          <div class="card-body status-display">
+            <div class="status-badge-large" id="statusBadgeLarge">
+              <div class="status-pulse"></div>
+              <span id="statusBadgeText">STANDBY</span>
+            </div>
+            <div class="status-details">
+              <div class="status-detail-item">
+                <span class="detail-label">Last Update</span>
+                <span class="detail-value" id="lastUpdate">--</span>
+              </div>
+              <div class="status-detail-item">
+                <span class="detail-label">Data Points</span>
+                <span class="detail-value" id="dataPoints">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Battery Health Analytics -->
+        <div class="card glass-card card-small card-animate" style="animation-delay: 150ms">
+          <div class="card-header">
+            <h3>BATTERY HEALTH</h3>
+            <div class="card-icon">❤️</div>
+          </div>
+          <div class="card-body">
+            <div class="health-metric">
+              <div class="metric-value" id="healthPercent">--</div>
+              <div class="metric-label">Health Score</div>
+            </div>
+            <div class="health-bar">
+              <div class="health-bar-fill" id="healthBarFill"></div>
+            </div>
+            <div class="health-details">
+              <div class="health-detail">
+                <span>Design</span>
+                <span id="designCapacity">-- mWh</span>
+              </div>
+              <div class="health-detail">
+                <span>Current</span>
+                <span id="currentCapacity">-- mWh</span>
+              </div>
+              <div class="health-detail">
+                <span>Cycles</span>
+                <span id="cycleCount">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini Stats Cards -->
+        <div class="card glass-card card-mini card-animate" style="animation-delay: 300ms">
+          <div class="mini-stat">
+            <div class="mini-stat-label">VOLTAGE</div>
+            <div class="mini-stat-value" id="voltage">--</div>
+          </div>
+        </div>
+
+        <div class="card glass-card card-mini card-animate" style="animation-delay: 325ms">
+          <div class="mini-stat">
+            <div class="mini-stat-label">TEMPERATURE</div>
+            <div class="mini-stat-value" id="temperature">--</div>
+          </div>
+        </div>
+
+        <div class="card glass-card card-mini card-animate" style="animation-delay: 350ms">
+          <div class="mini-stat">
+            <div class="mini-stat-label">POWER DRAW</div>
+            <div class="mini-stat-value" id="powerDraw">--</div>
+          </div>
+        </div>
+
+        <div class="card glass-card card-mini card-animate" style="animation-delay: 375ms">
+          <div class="mini-stat">
+            <div class="mini-stat-label">SESSIONS</div>
+            <div class="mini-stat-value" id="sessions">--</div>
+          </div>
+        </div>
+
+        <!-- Time Series Chart (Full Width) -->
+        <div class="card glass-card card-full card-animate" style="animation-delay: 400ms">
+          <div class="card-header">
+            <h3>TIME SERIES ANALYSIS</h3>
+            <div class="card-icon">📉</div>
+          </div>
+          <div class="card-body">
+            <canvas id="timeSeriesChart" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disk View -->
+    <div id="diskView" class="dashboard-view">
+      <div class="dashboard-grid">
+        <!-- Disk Gauge Ring (Large Card) -->
+        <div class="card glass-card card-large card-animate" style="animation-delay: 0ms">
+          <div class="card-header">
+            <h3>DISK CORE</h3>
+            <div class="card-icon">💾</div>
+          </div>
+          <div class="card-body">
+            <div class="battery-gauge">
+              <svg class="gauge-ring" viewBox="0 0 200 200">
+                <defs>
+                  <linearGradient id="diskGaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#ff6b00" id="diskGaugeStop1"/>
+                    <stop offset="100%" stop-color="#ff0080" id="diskGaugeStop2"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="100" cy="100" r="85" class="gauge-bg"/>
+                <circle cx="100" cy="100" r="85" class="gauge-progress" id="diskGaugeProgress" style="stroke: url(#diskGaugeGradient)"/>
+              </svg>
+              <div class="gauge-center">
+                <div class="gauge-value" id="diskGaugeValue">--</div>
+                <div class="gauge-label">USED</div>
+                <div class="gauge-time" id="diskFreeSpace">-- GB free</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Disk Status -->
+        <div class="card glass-card card-medium card-animate" style="animation-delay: 100ms">
+          <div class="card-header">
+            <h3>DISK STATUS</h3>
+            <div class="card-icon">📋</div>
+          </div>
+          <div class="card-body status-display">
+            <div class="disk-metrics">
+              <div class="disk-metric-row">
+                <span class="metric-name">Total:</span>
+                <span class="metric-val" id="diskTotal">-- GB</span>
+              </div>
+              <div class="disk-metric-row">
+                <span class="metric-name">Used:</span>
+                <span class="metric-val" id="diskUsed">-- GB</span>
+              </div>
+              <div class="disk-metric-row">
+                <span class="metric-name">Free:</span>
+                <span class="metric-val disk-free" id="diskFree">-- GB</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Disk Growth Analytics -->
+        <div class="card glass-card card-small card-animate" style="animation-delay: 150ms">
+          <div class="card-header">
+            <h3>GROWTH FORECAST</h3>
+            <div class="card-icon">📈</div>
+          </div>
+          <div class="card-body">
+            <div class="analytics-item">
+              <span class="ana-label">Daily Growth</span>
+              <span class="ana-value" id="dailyGrowth">-- GB/day</span>
+            </div>
+            <div class="analytics-item">
+              <span class="ana-label">Time to Full</span>
+              <span class="ana-value" id="timeToFull">-- days</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- I/O Rate Stats -->
+        <div class="card glass-card card-mini card-animate" style="animation-delay: 300ms">
+          <div class="mini-stat">
+            <div class="mini-stat-label">READ RATE</div>
+            <div class="mini-stat-value" id="diskReadRate">--</div>
+          </div>
+        </div>
+
+        <div class="card glass-card card-mini card-animate" style="animation-delay: 325ms">
+          <div class="mini-stat">
+            <div class="mini-stat-label">WRITE RATE</div>
+            <div class="mini-stat-value" id="diskWriteRate">--</div>
+          </div>
+        </div>
+
+        <div class="card glass-card card-mini card-animate" style="animation-delay: 350ms">
+          <div class="mini-stat">
+            <div class="mini-stat-label">READ OPS</div>
+            <div class="mini-stat-value" id="diskReadOps">--</div>
+          </div>
+        </div>
+
+        <div class="card glass-card card-mini card-animate" style="animation-delay: 375ms">
+          <div class="mini-stat">
+            <div class="mini-stat-label">WRITE OPS</div>
+            <div class="mini-stat-value" id="diskWriteOps">--</div>
+          </div>
+        </div>
+
+        <!-- Top Processes Table -->
+        <div class="card glass-card card-full card-animate" style="animation-delay: 400ms">
+          <div class="card-header">
+            <h3>TOP DISK WRITERS</h3>
+            <div class="card-icon">⚙️</div>
+          </div>
+          <div class="card-body">
+            <table class="process-table">
+              <thead>
+                <tr>
+                  <th>Process</th>
+                  <th>PID</th>
+                  <th>Write Rate</th>
+                </tr>
+              </thead>
+              <tbody id="topProcesses">
+                <tr><td colspan="3" class="empty-state">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Disk Usage Chart -->
+        <div class="card glass-card card-full card-animate" style="animation-delay: 420ms">
+          <div class="card-header">
+            <h3>DISK USAGE HISTORY</h3>
+            <div class="card-icon">📊</div>
+          </div>
+          <div class="card-body">
+            <canvas id="diskTimeSeriesChart" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Load Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Load Data Simulation -->
+  <script src="data_loader.js"></script>
+  <!-- Load Main App -->
+  <script src="app.js"></script>
+</body>
+</html>
