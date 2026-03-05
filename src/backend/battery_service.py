@@ -50,7 +50,12 @@ def run_as_admin():
 
 # Model Configuration
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(SCRIPT_DIR, "Disk_ML", "disk_failure_model_gpu.pkl")
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
+MODEL_PATH = os.path.join(PROJECT_ROOT, "src", "ml", "models", "disk_failure_model_gpu.pkl")
+DATA_DIR = os.path.join(PROJECT_ROOT, "data")
+
+# Ensure data directory exists
+os.makedirs(DATA_DIR, exist_ok=True)
 MODEL = None
 
 try:
@@ -325,8 +330,8 @@ def main():
     print("\n" + "="*50)
     print("🔋 Battery & Disk Neural Core")
     print("="*50)
-    print("📁 Writing battery data to: battery_data.json")
-    print("💾 Writing disk data to: disk_data.json")
+    print(f"📁 Writing battery data to: {os.path.join(DATA_DIR, 'battery_data.json')}")
+    print(f"💾 Writing disk data to: {os.path.join(DATA_DIR, 'disk_data.json')}")
     print("⏱️  Update interval: 2 seconds")
     print("="*50 + "\n")
     
@@ -361,14 +366,14 @@ def main():
             
             # Write battery file
             try:
-                with open("battery_data.json", "w") as f:
+                with open(os.path.join(DATA_DIR, "battery_data.json"), "w") as f:
                     json.dump(battery_data, f)
             except Exception as e:
                 print(f"❌ Battery write error: {e}")
             
             # Write disk file
             try:
-                with open("disk_data.json", "w") as f:
+                with open(os.path.join(DATA_DIR, "disk_data.json"), "w") as f:
                     json.dump(disk_data, f)
             except Exception as e:
                 print(f"❌ Disk write error: {e}")

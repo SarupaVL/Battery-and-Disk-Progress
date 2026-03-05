@@ -68,16 +68,16 @@ class DataLoader {
    */
   async fetchBatteryData() {
     try {
-      const response = await fetch(`battery_data.json?t=${Date.now()}`);
+      const response = await fetch(`/data/battery_data.json?t=${Date.now()}`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      
+
       this.batteryData = await response.json();
       this.notifyBatterySubscribers();
       return true;
     } catch (error) {
-      console.warn(`⚠️ Cannot load battery_data.json: ${error.message}`);
+      console.warn(`⚠️ Cannot load /data/battery_data.json: ${error.message}`);
       return false;
     }
   }
@@ -87,16 +87,16 @@ class DataLoader {
    */
   async fetchDiskData() {
     try {
-      const response = await fetch(`disk_data.json?t=${Date.now()}`);
+      const response = await fetch(`/data/disk_data.json?t=${Date.now()}`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      
+
       this.diskData = await response.json();
       this.notifyDiskSubscribers();
       return true;
     } catch (error) {
-      console.warn(`⚠️ Cannot load disk_data.json: ${error.message}`);
+      console.warn(`⚠️ Cannot load /data/disk_data.json: ${error.message}`);
       return false;
     }
   }
@@ -116,12 +116,12 @@ class DataLoader {
    */
   start(interval = 2000) {
     if (this.fetchInterval) return;
-    
+
     console.log("🚀 Data loader started");
-    
+
     // Fetch immediately
     this.fetchData();
-    
+
     // Then fetch at intervals
     this.fetchInterval = setInterval(() => {
       this.fetchData();
