@@ -110,6 +110,7 @@ function onDiskDataUpdate(data) {
   updateDiskAnalytics(data);
   updateTopProcesses(data);
   updateDiskTimeSeriesChart(data);
+  updateNeuralHealth(data);
 }
 
 /**
@@ -210,6 +211,33 @@ function updateDiskGaugeColor(percent) {
   } else {
     stop1.setAttribute('stop-color', '#00f3ff');
     stop2.setAttribute('stop-color', '#00ff88');
+  }
+}
+
+/**
+ * Update Neural Health Prediction UI
+ */
+function updateNeuralHealth(data) {
+  const prediction = data.current.failure_probability || 0;
+  const healthLabel = data.analytics.neural_health_label || 'SAFE';
+
+  const percentElem = document.getElementById('predictionPercent');
+  const labelElem = document.getElementById('predictionLabel');
+  const barFill = document.getElementById('predictionBarFill');
+  const displayCard = document.querySelector('.prediction-display')?.parentElement;
+
+  if (!percentElem || !labelElem || !barFill) return;
+
+  // Update value with animation if significantly changed
+  const probPercent = (prediction * 100).toFixed(2);
+  percentElem.textContent = probPercent + '%';
+  labelElem.textContent = healthLabel;
+  barFill.style.width = Math.max(2, probPercent) + '%';
+
+  // Update CSS classes for risk levels
+  if (displayCard) {
+    displayCard.classList.remove('risk-safe', 'risk-warning', 'risk-critical');
+    displayCard.classList.add(`risk-${healthLabel.toLowerCase()}`);
   }
 }
 
