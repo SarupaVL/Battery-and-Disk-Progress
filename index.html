@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Battery & Disk Neural Core - Power & Storage Analytics</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="tooltips.css">
 </head>
+
 <body>
   <!-- Animated Background -->
   <div class="background-container">
@@ -32,12 +35,15 @@
           <button class="tab-button" id="tabDisk">
             <span class="tab-icon">💾</span>DISK
           </button>
+          <button class="tab-button" id="tabHistory">
+            <span class="tab-icon">📜</span>HISTORY
+          </button>
         </div>
       </div>
       <div class="top-bar-right">
         <div class="power-source" id="powerSource">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/>
+            <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" />
           </svg>
           <span id="powerSourceText">AC</span>
         </div>
@@ -59,12 +65,12 @@
               <svg class="gauge-ring" viewBox="0 0 200 200">
                 <defs>
                   <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#00f3ff" id="gaugeStop1"/>
-                    <stop offset="100%" stop-color="#0066ff" id="gaugeStop2"/>
+                    <stop offset="0%" stop-color="#00f3ff" id="gaugeStop1" />
+                    <stop offset="100%" stop-color="#0066ff" id="gaugeStop2" />
                   </linearGradient>
                 </defs>
-                <circle cx="100" cy="100" r="85" class="gauge-bg"/>
-                <circle cx="100" cy="100" r="85" class="gauge-progress" id="gaugeProgress"/>
+                <circle cx="100" cy="100" r="85" class="gauge-bg" />
+                <circle cx="100" cy="100" r="85" class="gauge-progress" id="gaugeProgress" />
               </svg>
               <div class="gauge-center">
                 <div class="gauge-value" id="gaugeValue">--</div>
@@ -114,15 +120,16 @@
               <div class="health-bar-fill" id="healthBarFill"></div>
             </div>
             <div class="health-details">
-              <div class="health-detail">
+              <div class="health-detail has-tooltip"
+                data-tooltip="Original factory capacity of your battery when brand new">
                 <span>Design</span>
                 <span id="designCapacity">-- mWh</span>
               </div>
-              <div class="health-detail">
+              <div class="health-detail has-tooltip" data-tooltip="Maximum capacity your battery can hold today">
                 <span>Current</span>
                 <span id="currentCapacity">-- mWh</span>
               </div>
-              <div class="health-detail">
+              <div class="health-detail has-tooltip" data-tooltip="Number of full 0-100% charge/discharge loops">
                 <span>Cycles</span>
                 <span id="cycleCount">--</span>
               </div>
@@ -159,6 +166,82 @@
           </div>
         </div>
 
+        <!-- Predictive Maintenance Analytics -->
+        <div class="card glass-card card-medium card-animate" style="animation-delay: 380ms">
+          <div class="card-header">
+            <h3>PREDICTIVE MAINTENANCE</h3>
+            <div class="card-icon">🧠</div>
+          </div>
+          <div class="card-body">
+            <div class="predictive-metrics">
+              <div class="risk-score-container">
+                <div class="risk-value" id="riskScore">--</div>
+                <div class="risk-label">RISK SCORE</div>
+                <div class="risk-badge" id="riskBadge">CALIBRATING</div>
+              </div>
+              <div class="analytics-row">
+                <div class="ana-stat has-tooltip"
+                  data-tooltip="Speed of battery consumption. High drain stresses the battery.">
+                  <span class="ana-stat-label">DRAIN RATE</span>
+                  <span class="ana-stat-value" id="drainRate">--%/hr</span>
+                </div>
+                <div class="ana-stat has-tooltip"
+                  data-tooltip="Percentage of time battery is kept below 90% plug capacity">
+                  <span class="ana-stat-label">CHARGE SAFETY</span>
+                  <span class="ana-stat-value" id="chargeSafety">--%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charging Analytics -->
+        <div class="card glass-card card-medium card-animate" style="animation-delay: 385ms">
+          <div class="card-header">
+            <h3>CHARGING STATS</h3>
+            <div class="card-icon">🔌</div>
+          </div>
+          <div class="card-body status-display">
+            <div class="disk-metrics" style="margin-top:0">
+              <div class="disk-metric-row has-tooltip"
+                data-tooltip="Total time the laptop has been plugged in (tracked by service)">
+                <span class="metric-name">Time Charging:</span>
+                <span class="metric-val" id="timeCharging">-- m</span>
+              </div>
+              <div class="disk-metric-row has-tooltip"
+                data-tooltip="Time kept plugged in above 90% (This accelerates degradation!)">
+                <span class="metric-name">Time > 90%:</span>
+                <span class="metric-val" id="timeAbove90">-- m</span>
+              </div>
+              <div class="disk-metric-row has-tooltip"
+                data-tooltip="Safe Charge Time: Kept plugged in below stress thresholds">
+                <span class="metric-name">Safe Charge Time:</span>
+                <span class="metric-val disk-free" id="safeChargeTime">-- %</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Usage Statistics -->
+        <div class="card glass-card card-medium card-animate" style="animation-delay: 390ms">
+          <div class="card-header">
+            <h3>USAGE SUMMARY</h3>
+            <div class="card-icon">⏱️</div>
+          </div>
+          <div class="card-body">
+            <div class="analytics-item has-tooltip" data-tooltip="Your average hourly drain across today's sessions">
+              <span class="ana-label">Avg Daily Drain</span>
+              <span class="ana-value" id="dailyAvgDrain">-- %/hr</span>
+            </div>
+            <div class="analytics-item has-tooltip" style="margin-top: 15px;"
+              data-tooltip="The highest sudden peak of power consumption detected">
+              <span class="ana-label">Max Drain Spike</span>
+              <span class="ana-value" id="maxDrainSpike">-- %/hr</span>
+            </div>
+          </div>
+        </div>
+
+
         <!-- Time Series Chart (Full Width) -->
         <div class="card glass-card card-full card-animate" style="animation-delay: 400ms">
           <div class="card-header">
@@ -186,12 +269,13 @@
               <svg class="gauge-ring" viewBox="0 0 200 200">
                 <defs>
                   <linearGradient id="diskGaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#ff6b00" id="diskGaugeStop1"/>
-                    <stop offset="100%" stop-color="#ff0080" id="diskGaugeStop2"/>
+                    <stop offset="0%" stop-color="#ff6b00" id="diskGaugeStop1" />
+                    <stop offset="100%" stop-color="#ff0080" id="diskGaugeStop2" />
                   </linearGradient>
                 </defs>
-                <circle cx="100" cy="100" r="85" class="gauge-bg"/>
-                <circle cx="100" cy="100" r="85" class="gauge-progress" id="diskGaugeProgress" style="stroke: url(#diskGaugeGradient)"/>
+                <circle cx="100" cy="100" r="85" class="gauge-bg" />
+                <circle cx="100" cy="100" r="85" class="gauge-progress" id="diskGaugeProgress"
+                  style="stroke: url(#diskGaugeGradient)" />
               </svg>
               <div class="gauge-center">
                 <div class="gauge-value" id="diskGaugeValue">--</div>
@@ -289,7 +373,9 @@
                 </tr>
               </thead>
               <tbody id="topProcesses">
-                <tr><td colspan="3" class="empty-state">Loading...</td></tr>
+                <tr>
+                  <td colspan="3" class="empty-state">Loading...</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -302,18 +388,64 @@
             <div class="card-icon">📊</div>
           </div>
           <div class="card-body">
-            <canvas id="diskTimeSeriesChart" height="300"></canvas>
+            <div class="chart-container">
+              <canvas id="diskTimeSeriesChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History View -->
+    <div id="historyView" class="dashboard-view">
+      <div class="dashboard-grid">
+        <!-- Time Range Controls -->
+        <div class="card glass-card card-full card-animate" style="animation-delay: 0ms">
+          <div class="card-header">
+            <h3>HISTORY RANGE</h3>
+            <div class="card-icon">🕐</div>
+          </div>
+          <div class="card-body">
+            <div class="history-controls">
+              <div class="range-buttons">
+                <button class="range-btn range-active" data-range="1">1 Hour</button>
+                <button class="range-btn" data-range="6">6 Hours</button>
+                <button class="range-btn" data-range="24">24 Hours</button>
+                <button class="range-btn" data-range="custom" id="btnCustomRange">Custom</button>
+              </div>
+              <div class="custom-range" id="customRangeInputs" style="display:none;">
+                <label>Start <input type="datetime-local" id="historyStart"></label>
+                <label>End <input type="datetime-local" id="historyEnd"></label>
+                <button class="range-btn range-apply" id="btnApplyCustom">Apply</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Chart -->
+        <div class="card glass-card card-full card-animate" style="animation-delay: 100ms">
+          <div class="card-header">
+            <h3>BATTERY HISTORY</h3>
+            <div class="card-icon">📈</div>
+          </div>
+          <div class="card-body">
+            <div id="historyChartLoading" class="empty-state">Select a range to load data...</div>
+            <div class="chart-container">
+              <canvas id="historyChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- Load Chart.js -->
+  <!-- Load Chart.js + date adapter -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
   <!-- Load Data Simulation -->
   <script src="data_loader.js"></script>
   <!-- Load Main App -->
   <script src="app.js"></script>
 </body>
+
 </html>

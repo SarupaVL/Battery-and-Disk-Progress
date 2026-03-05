@@ -8,6 +8,8 @@ import json
 import sys
 import time
 import os
+import csv
+import battery_analytics
 from collections import defaultdict
 
 try:
@@ -18,6 +20,14 @@ except:
 # Track previous values for I/O and process writes
 previous_disk_io = None
 previous_process_writes = {}
+last_log_timestamp = 0  # To prevent duplicate logs within the same second
+
+# Ensure console can handle emojis
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except:
+        pass
 
 
 def get_battery_data():
@@ -187,13 +197,77 @@ def generate_disk_data():
     }
 
 
+def log_to_csv(battery_data):
+    """Log battery telemetry to a persistent CSV file"""
+    csv_file = "battery_history.csv"
+    headers = [
+        "timestamp", 
+        "battery_percent", 
+        "power_plugged", 
+        "design_capacity_mwh", 
+        "full_charge_capacity_mwh", 
+        "voltage"
+    ]
+    
+    file_exists = os.path.isfile(csv_file)
+    global last_log_timestamp
+    
+    # Safety Check: Only log if 1.8s have passed since last log
+    current_time = time.time()
+    if current_time - last_log_timestamp < 1.8:
+        return
+    
+    try:
+        with open(csv_file, "a", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=headers)
+            if not file_exists:
+                writer.writeheader()
+            
+            writer.writerow({
+                "timestamp": battery_data["current"]["timestamp"],
+                "battery_percent": battery_data["current"]["psutil"]["percent"],
+                "power_plugged": battery_data["current"]["psutil"]["power_plugged"],
+                "design_capacity_mwh": battery_data["static"]["design_capacity_mwh"],
+                "full_charge_capacity_mwh": battery_data["static"]["full_charge_capacity_mwh"],
+                "voltage": battery_data["current"]["voltage"]
+            })
+            last_log_timestamp = current_time
+    except Exception as e:
+        print(f"❌ CSV write error: {e}")
+
+
 def main():
     """Run background service"""
+    # Singleton Lock
+    lock_file = "battery_service.lock"
+    if os.path.exists(lock_file):
+        try:
+            # Check if process is actually running
+            with open(lock_file, "r") as f:
+                old_pid = int(f.read().strip())
+            import psutil as ps
+            if ps.pid_exists(old_pid):
+                print(f"⚠️ Service already running (PID: {old_pid}). Exiting.")
+                sys.exit(0)
+        except:
+            pass
+    
+    # Create new lock
+    with open(lock_file, "w") as f:
+        f.write(str(os.getpid()))
+    
+    import atexit
+    def cleanup_lock():
+        if os.path.exists(lock_file):
+            os.remove(lock_file)
+    atexit.register(cleanup_lock)
+
     print("\n" + "="*50)
     print("🔋 Battery & Disk Neural Core")
     print("="*50)
     print("📁 Writing battery data to: battery_data.json")
     print("💾 Writing disk data to: disk_data.json")
+    print("📝 Logging history to: battery_history.csv")
     print("⏱️  Update interval: 2 seconds")
     print("="*50 + "\n")
     
@@ -206,7 +280,7 @@ def main():
             battery_data = generate_battery_data()
             disk_data = generate_disk_data()
             
-            # Add to history
+            # Add to memory history (for JSON/Dashboard)
             battery_history.append({
                 "timestamp": battery_data["current"]["timestamp"],
                 "psutil": battery_data["current"]["psutil"]
@@ -217,7 +291,7 @@ def main():
                 "io_rates": disk_data["current"]["io_rates"]
             })
             
-            # Keep last 100 entries
+            # Keep last 100 entries in memory
             if len(battery_history) > 100:
                 battery_history = battery_history[-100:]
             if len(disk_history) > 100:
@@ -226,19 +300,69 @@ def main():
             battery_data["history"] = battery_history
             disk_data["history"] = disk_history
             
-            # Write battery file
+            # 1. Append to persistent CSV (Analytics)
+            log_to_csv(battery_data)
+            
+            # 3. Compute detailed analytics from CSV
+            try:
+                is_plugged = battery_data['current']['psutil']['power_plugged']
+                drain_data = battery_analytics.calculate_drain_rate(is_plugged_in=is_plugged)
+                worst_period = battery_analytics.detect_worst_drain_period()
+                health_data = battery_analytics.calculate_battery_health()
+                daily_summary = battery_analytics.generate_daily_summary()
+                weekly_summary = battery_analytics.generate_weekly_summary()
+                spike_alert = battery_analytics.detect_drain_spike()
+                charging_habits = battery_analytics.analyze_charging_habits()
+                
+                battery_data["battery_analytics"] = {
+                    "drain_rate_percent_per_hour": drain_data["drain_rate_percent_per_hour"],
+                    "worst_drain_rate": worst_period["worst_drain_rate"],
+                    "worst_drain_window": {
+                        "start": worst_period["start_time"],
+                        "end": worst_period["end_time"]
+                    }
+                }
+                battery_data["battery_health"] = health_data
+                battery_data["battery_summary"] = {
+                    "daily": daily_summary,
+                    "weekly": weekly_summary
+                }
+                battery_data["battery_alerts"] = {
+                    "drain_spike": spike_alert
+                }
+                battery_data["charging_analytics"] = charging_habits
+
+                # Compute predictive risk score
+                spike_freq = 1 if spike_alert.get("anomaly_detected", False) else 0
+                risk = battery_analytics.calculate_risk_score(
+                    battery_health_percent=health_data.get("battery_health_percent", 96),
+                    drain_spike_frequency=spike_freq,
+                    percent_time_above_90=charging_habits.get("percent_time_above_90", 0),
+                    overheating_events=0  # No thermal sensor yet
+                )
+                battery_data["predictive_maintenance"] = risk
+            except Exception as e:
+                print(f"⚠️ Analytics calculation error: {e}")
+                battery_data["battery_analytics"] = {}
+                battery_data["battery_health"] = {}
+                battery_data["battery_summary"] = {}
+                battery_data["battery_alerts"] = {}
+                battery_data["charging_analytics"] = {}
+                battery_data["predictive_maintenance"] = {}
+
+            # 4. Write battery JSON (Dashboard)
             try:
                 with open("battery_data.json", "w") as f:
-                    json.dump(battery_data, f)
+                    json.dump(battery_data, f, indent=4)
             except Exception as e:
-                print(f"❌ Battery write error: {e}")
-            
-            # Write disk file
+                print(f"❌ Battery JSON write error: {e}")
+
+            # 5. Write disk JSON
             try:
                 with open("disk_data.json", "w") as f:
-                    json.dump(disk_data, f)
+                    json.dump(disk_data, f, indent=4)
             except Exception as e:
-                print(f"❌ Disk write error: {e}")
+                print(f"❌ Disk JSON write error: {e}")
             
             bat_pct = battery_data['current']['psutil']['percent']
             disk_pct = disk_data['current']['usage']['percent']

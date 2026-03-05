@@ -1,68 +1,42 @@
-# Battery Neural Core - Windows Edition
+# Battery Neural Core & Predictive Analytics - Windows Edition
 
-A real-time battery analytics dashboard that shows actual Windows battery data.
+A complete, end-to-end Windows battery telemetry pipeline. It silently tracks your battery health in the background and uses a Machine Learning model (Random Forest Regressor trained on NASA Datasets) to predict your battery's risk of failure and degradation rate.
 
-## ⚡ Quick Start
-
+## ⚡ Quick Start (Manual)
 **Double-click:** `run_dashboard.bat`
+The telemetry logger will start and open your dashboard at `http://localhost:3000`.
 
-That's it! The dashboard opens at `http://localhost:3000` with real battery data.
+## 🔋 Persistent Telemetry (Automatic)
+To build historical data and predict long-term degradation, the logger needs to run constantly. 
+**Double-click:** `install_service.bat`
+This will automatically register the python `battery_service.py` script to boot silently every time you turn on your Windows laptop. You never have to think about it again. Just open `http://localhost:3000` whenever you want to check your battery health!
 
-## 📁 Files
+## 📁 Key Files
 
 | File | Purpose |
 |------|---------|
-| `run_dashboard.bat` | Start everything (launcher) |
-| `battery_service.py` | Background service - collects battery data |
-| `server.py` | Web server - serves the dashboard |
-| `battery_data.json` | Real-time battery data (auto-updated) |
-| `index.html` | Dashboard UI |
-| `app.js` | Dashboard logic & animations |
-| `data_loader.js` | Loads data from JSON file |
-| `style.css` | Dashboard styling |
+| `run_dashboard.bat` | Starts the logger and server manually |
+| `install_service.bat` | Installs the logger as an invisible Windows Startup task |
+| `battery_service.py` | Core telemetry engine - collects psutil battery data every 2s |
+| `battery_analytics.py` | Feeds live telemetry into the Random Forest `.joblib` ML model |
+| `server.py` | Web API Server (Handles History range queries & CSV exports) |
+| `index.html` & `app.js`| Real-time Glassmorphism Dashboard UI |
 
-## 🎯 How It Works
-
-1. **`battery_service.py`** runs in background
-   - Reads Windows battery info via psutil
-   - Updates `battery_data.json` every 2 seconds
-
-2. **`server.py`** serves the web dashboard
-   - Opens on `http://localhost:3000`
-
-3. **Browser** loads and displays
-   - Reads `battery_data.json` continuously
-   - Shows real battery data with animations
-
-## 🛑 Stop
-
-Close the two command windows to stop.
-
-## ⚙️ Manual Start (if needed)
-
-```powershell
-# Terminal 1
-python battery_service.py
-
-# Terminal 2 (in same folder)
-python server.py 3000
-
-# Then open browser
-http://localhost:3000
-```
+## 🧠 Machine Learning Integration
+The backend utilizes the `battery_rf_model.joblib` to calculate a live **Predictive Risk Score**.
+- **Inputs:** Current voltage, temperature proxy, capacity loss, and drain speed.
+- **Output:** A dynamically calculating 0-100 Risk Index predicting short-term failure or high-temperature degradation limits. 
+- *Note: Machine Learning Models are excluded from Github!* To train your own model from scratch, run `local_train_rf.py` or use the Colab notebook version.
 
 ## 📊 Features
 
-✅ Real Windows battery percentage  
-✅ Charging/discharging status  
-✅ Battery health score  
-✅ Voltage, temperature, power draw  
-✅ 30+ point historical chart  
-✅ Live updates every 2 seconds  
-✅ Animated neural network background  
+✅ **Live Time Series:** Sub-second glowing chart tracking current voltage and drain.
+✅ **Historical Data Querying:** Explore past days of battery drain performance with custom time bounds.
+✅ **Predictive Maintenance:** Live ML Risk Score.
+✅ **Charging Analytics:** Tracks exactly how long your laptop has been plugged in at >90% (which accelerates chemical degradation).
+✅ **Auto-Startup Persistence:** Set-It-And-Forget-It Windows `.vbs` launcher.
+✅ **Dark Mode Neural Net UX.**
 
 ---
 
-**Windows only** - No dependencies except Python + psutil
-
-Enjoy! ⚡
+**Windows only** - No dependencies except `Python`, `psutil`, `scikit-learn`, and `joblib`.

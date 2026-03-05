@@ -45,28 +45,31 @@ function initApp() {
  * Set up tab navigation
  */
 function setupTabNavigation() {
-  const tabBattery = document.getElementById('tabBattery');
-  const tabDisk = document.getElementById('tabDisk');
-  const batteryView = document.getElementById('batteryView');
-  const diskView = document.getElementById('diskView');
+  const tabs = [
+    { btn: document.getElementById('tabBattery'), view: document.getElementById('batteryView') },
+    { btn: document.getElementById('tabDisk'), view: document.getElementById('diskView') },
+    { btn: document.getElementById('tabHistory'), view: document.getElementById('historyView') }
+  ];
 
-  if (tabBattery) {
-    tabBattery.addEventListener('click', () => {
-      tabBattery.classList.add('tab-active');
-      tabDisk.classList.remove('tab-active');
-      batteryView.classList.add('active');
-      diskView.classList.remove('active');
-    });
-  }
+  tabs.forEach(tab => {
+    if (tab.btn) {
+      tab.btn.addEventListener('click', () => {
+        tabs.forEach(t => {
+          t.btn.classList.remove('tab-active');
+          if (t.view) t.view.classList.remove('active');
+        });
+        tab.btn.classList.add('tab-active');
+        if (tab.view) tab.view.classList.add('active');
 
-  if (tabDisk) {
-    tabDisk.addEventListener('click', () => {
-      tabDisk.classList.add('tab-active');
-      tabBattery.classList.remove('tab-active');
-      diskView.classList.add('active');
-      batteryView.classList.remove('active');
-    });
-  }
+        // Auto-load history when switching to the History tab
+        if (tab.btn.id === 'tabHistory' && !historyChart) {
+          initHistoryChart();
+          setupHistoryControls();
+          loadHistoryData(1);
+        }
+      });
+    }
+  });
 }
 
 /**
@@ -81,6 +84,8 @@ function onBatteryDataUpdate(data) {
   updateBatteryStatusDisplay(data);
   updateHealthMetrics(data);
   updateMiniStats(data);
+  updatePredictiveAnalytics(data);
+  updateExtraAnalytics(data);
   updateTimeSeriesChart(data);
   updateThemeColors(data);
 }
@@ -427,6 +432,80 @@ function updateMiniStats(data) {
 }
 
 /**
+ * Update predictive maintenance analytics
+ */
+function updatePredictiveAnalytics(data) {
+  if (!data.predictive_maintenance) return;
+
+  const risk = data.predictive_maintenance.battery_risk_score;
+  const level = data.predictive_maintenance.risk_level;
+  const drain = data.battery_analytics?.drain_rate_percent_per_hour || 0;
+  const safeCharge = 100 - (data.charging_analytics?.percent_time_above_90 || 0);
+
+  // Update Risk Score with animation
+  animateValue('riskScore', 0, risk, 1000, (val) => Math.round(val));
+
+  // Update Risk Badge and Card State
+  const riskBadge = document.getElementById('riskBadge');
+  const riskContainer = document.querySelector('.risk-score-container');
+
+  if (riskBadge) {
+    riskBadge.textContent = level;
+
+    // Reset classes
+    if (riskContainer) {
+      riskContainer.classList.remove('risk-low', 'risk-med', 'risk-high');
+      riskContainer.classList.add(`risk-${level.toLowerCase()}`);
+    }
+  }
+
+  // Update other stats
+  const drainRateElem = document.getElementById('drainRate');
+  if (drainRateElem) drainRateElem.textContent = drain + '%/hr';
+
+  const chargeSafetyElem = document.getElementById('chargeSafety');
+  if (chargeSafetyElem) chargeSafetyElem.textContent = Math.round(safeCharge) + '%';
+}
+
+/**
+ * Format raw minutes into human-readable 'Xh Ym' string
+ */
+function formatMinutesToHours(totalMinutes) {
+  if (!totalMinutes || totalMinutes === 0) return '0 m';
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = Math.round(totalMinutes % 60);
+  if (hours > 0) {
+    return `${hours}h ${mins}m`;
+  }
+  return `${mins}m`;
+}
+
+/**
+ * Update the extra charging and usage analytics blocks
+ */
+function updateExtraAnalytics(data) {
+  // Charging Stats
+  if (data.charging_analytics) {
+    const timeCharging = document.getElementById('timeCharging');
+    const timeAbove90 = document.getElementById('timeAbove90');
+    const safeChargeTime = document.getElementById('safeChargeTime');
+
+    if (timeCharging) timeCharging.textContent = formatMinutesToHours(data.charging_analytics.time_charging_minutes);
+    if (timeAbove90) timeAbove90.textContent = formatMinutesToHours(data.charging_analytics.time_above_90_minutes);
+    if (safeChargeTime) safeChargeTime.textContent = (100 - data.charging_analytics.percent_time_above_90).toFixed(1) + ' %';
+  }
+
+  // Usage Summary
+  if (data.battery_summary && data.battery_summary.daily) {
+    const dailyAvgDrain = document.getElementById('dailyAvgDrain');
+    const maxDrainSpike = document.getElementById('maxDrainSpike');
+
+    if (dailyAvgDrain) dailyAvgDrain.textContent = (data.battery_summary.daily.average_drain_rate || 0).toFixed(1) + ' %/hr';
+    if (maxDrainSpike) maxDrainSpike.textContent = (data.battery_summary.daily.max_drain_spike || 0).toFixed(1) + ' %/hr';
+  }
+}
+
+/**
  * Update theme colors based on battery status
  */
 function updateThemeColors(data) {
@@ -710,6 +789,188 @@ function initNeuralNetwork() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
   });
+}
+
+// ========================
+// History Chart System
+// ========================
+
+let historyChart = null;
+
+function initHistoryChart() {
+  const ctx = document.getElementById('historyChart');
+  if (!ctx || historyChart) return;
+
+  historyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'Historical Battery %',
+        data: [],
+        borderColor: '#b100ff',
+        backgroundColor: 'rgba(177, 0, 255, 0.15)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointBackgroundColor: '#b100ff',
+        pointBorderColor: '#b100ff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          display: true,
+          labels: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 12 } }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 15, 35, 0.9)',
+          borderColor: 'rgba(177, 0, 255, 0.4)',
+          borderWidth: 1,
+          titleColor: '#b100ff',
+          bodyColor: '#e0e0e0',
+          callbacks: {
+            title: function (items) {
+              if (items.length > 0) {
+                const d = new Date(items[0].parsed.x);
+                return d.toLocaleString();
+              }
+              return '';
+            },
+            label: function (item) {
+              return `Battery: ${item.parsed.y.toFixed(1)}%`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            tooltipFormat: 'PPpp',
+            displayFormats: {
+              minute: 'HH:mm',
+              hour: 'HH:mm',
+              day: 'MMM d'
+            }
+          },
+          ticks: { color: 'rgba(255, 255, 255, 0.5)', maxTicksLimit: 12 },
+          grid: { color: 'rgba(255, 255, 255, 0.05)' }
+        },
+        y: {
+          min: 0,
+          max: 100,
+          ticks: { color: 'rgba(255, 255, 255, 0.5)' },
+          grid: { color: 'rgba(255, 255, 255, 0.05)' }
+        }
+      }
+    }
+  });
+}
+
+async function loadHistoryData(hours, startLocal, endLocal) {
+  const loading = document.getElementById('historyChartLoading');
+  const canvas = document.getElementById('historyChart');
+
+  if (loading) loading.style.display = 'block';
+  if (canvas) canvas.style.display = 'none';
+
+  let url = '/battery/history?';
+  let chartMin, chartMax;
+
+  // Helper to format Date to local ISO string (without Z)
+  const toLocalISO = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
+
+  if (startLocal && endLocal) {
+    url += `start=${encodeURIComponent(startLocal)}&end=${encodeURIComponent(endLocal)}`;
+    chartMin = new Date(startLocal).getTime();
+    chartMax = new Date(endLocal).getTime();
+  } else {
+    const now = new Date();
+    const start = new Date(now.getTime() - hours * 60 * 60 * 1000);
+    url += `start=${encodeURIComponent(toLocalISO(start))}&end=${encodeURIComponent(toLocalISO(now))}`;
+    chartMin = start.getTime();
+    chartMax = now.getTime();
+  }
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    if (!historyChart) initHistoryChart();
+
+    // Map to Chart.js {x, y} format
+    const points = data.map(row => ({
+      x: new Date(row.timestamp),
+      y: row.battery_percent
+    }));
+
+    historyChart.data.datasets[0].data = points;
+
+    // Force the X-axis to lock to the exact selected time bounds
+    if (historyChart.options.scales.x) {
+      historyChart.options.scales.x.min = chartMin;
+      historyChart.options.scales.x.max = chartMax;
+    }
+
+    historyChart.update();
+
+    if (loading) loading.style.display = 'none';
+    if (canvas) canvas.style.display = 'block';
+
+    if (points.length === 0 && loading) {
+      loading.textContent = 'No data for this range';
+      loading.style.display = 'block';
+    }
+  } catch (err) {
+    console.error('History fetch error:', err);
+    if (loading) {
+      loading.textContent = 'Failed to load history data';
+      loading.style.display = 'block';
+    }
+  }
+}
+
+function setupHistoryControls() {
+  const rangeButtons = document.querySelectorAll('.range-btn[data-range]');
+  const customInputs = document.getElementById('customRangeInputs');
+  const applyBtn = document.getElementById('btnApplyCustom');
+
+  rangeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Update active state
+      rangeButtons.forEach(b => b.classList.remove('range-active'));
+      btn.classList.add('range-active');
+
+      const range = btn.getAttribute('data-range');
+
+      if (range === 'custom') {
+        if (customInputs) customInputs.style.display = 'flex';
+      } else {
+        if (customInputs) customInputs.style.display = 'none';
+        loadHistoryData(parseInt(range));
+      }
+    });
+  });
+
+  if (applyBtn) {
+    applyBtn.addEventListener('click', () => {
+      const startInput = document.getElementById('historyStart');
+      const endInput = document.getElementById('historyEnd');
+      if (startInput && endInput && startInput.value && endInput.value) {
+        // Leave the 'datetime-local' inputs as local naive time strings
+        loadHistoryData(null, startInput.value + ':00', endInput.value + ':00');
+      }
+    });
+  }
 }
 
 // Initialize app when DOM is loaded

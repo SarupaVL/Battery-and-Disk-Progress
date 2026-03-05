@@ -1,0 +1,35 @@
+/* Tooltip Styles */
+.has-tooltip {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dotted rgba(0, 243, 255, 0.5);
+}
+
+.has-tooltip:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background: rgba(15, 15, 35, 0.95);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 11px;
+  font-weight: normal;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  opacity: 0;
+  animation: fadeInTooltip 0.2s ease forwards;
+}
+
+@keyframes fadeInTooltip {
+  to {
+    opacity: 1;
+  }
+}

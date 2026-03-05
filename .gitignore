@@ -20,8 +20,10 @@ coverage.xml
 # Application Data (Auto-generated)
 battery_data.json
 disk_data.json
+battery_history.csv
 server.log
 battery_and_disk_agent/logs/
+silent_runner.vbs
 
 # IDEs
 .vscode/
@@ -32,3 +34,12 @@ battery_and_disk_agent/logs/
 # OS
 Thumbs.db
 desktop.ini
+
+# Machine Learning Models & Scripts
+battery_rf_model.joblib
+colab_train_rf.py
+local_train_rf.py
+
+# Locks
+*.lock
+
