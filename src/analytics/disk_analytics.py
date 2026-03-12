@@ -12,9 +12,10 @@ if sys.platform == "win32":
     except:
         pass
 
-# EMA state
-ema_failure_probability = 0.0012
-EMA_ALPHA = 0.2  # Smoothing factor (lower = smoother)
+# EMA state (Shared across modules)
+EMA_ALPHA = 0.2
+INITIAL_FAILURE_PROB = 0.0012
+ema_failure_probability = INITIAL_FAILURE_PROB
 
 def is_admin():
     """Check if script is running with Administrator privileges"""
@@ -114,9 +115,16 @@ def get_failure_prediction(previous_disk_io=None):
         vector = [features[col] for col in MODEL_COLUMNS]
         input_data = np.array([vector])
         raw_prob = float(MODEL.predict_proba(input_data)[0][1])
+        
+        # Apply smoothing
         ema_failure_probability = (raw_prob * EMA_ALPHA) + (ema_failure_probability * (1 - EMA_ALPHA))
-        if ema_failure_probability < 0.0001:
+        
+        # Clamp to realistic bounds
+        if ema_failure_probability < 0.000001:
             ema_failure_probability = 0.000001
+        elif ema_failure_probability > 0.99:
+            ema_failure_probability = 0.99
+            
         return ema_failure_probability
     except Exception as e:
         print(f"Prediction error: {e}")

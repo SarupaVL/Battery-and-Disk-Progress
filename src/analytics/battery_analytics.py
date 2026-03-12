@@ -107,7 +107,7 @@ def calculate_drain_rate(csv_file=DEFAULT_CSV, is_plugged_in=False):
     final_rate = min(60.0, max(0.0, median_drain))
     
     return {
-        "drain_rate_percent_per_hour": round(final_rate, 2)
+        "drain_rate_percent_per_hour": round(float(final_rate), 2)
     }
 
 def detect_worst_drain_period(csv_file=DEFAULT_CSV):
@@ -184,6 +184,7 @@ def calculate_battery_health(csv_file=DEFAULT_CSV):
         return {"battery_health_percent": 0.0, "design_capacity_mwh": design, "full_charge_capacity_mwh": full_charge}
 
     health = round((full_charge / design) * 100, 2)
+    health = max(0.0, min(100.0, health)) # Clamp to 100%
 
     return {
         "battery_health_percent": health,

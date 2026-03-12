@@ -335,10 +335,8 @@ def parse_smart_data(vendor_specific, is_nvme=False):
             
     return results
 
-def get_failure_prediction(is_nvme=False):
-    """Run disk failure prediction with REAL SMART data and EMA smoothing"""
-    global ema_failure_probability
-    
+def get_extended_disk_metrics(is_nvme=False):
+    """Run disk failure prediction via analytics module with fallback SMART parsing"""
     advanced_metrics = {
         "temperature_c": 35,
         "power_on_hours": 0,
@@ -347,73 +345,36 @@ def get_failure_prediction(is_nvme=False):
         "total_host_writes_gb": 0
     }
     
-    if disk_analytics.MODEL is None:
-        return 0.0012, advanced_metrics
+    # 1. External PowerShell Metrics (More robust for NVMe)
+    ps_metrics = get_powershell_metrics()
     
-    try:
-        # 1. Feature extraction from REAL SMART via WMI
-        features = {f: 0 for f in disk_analytics.MODEL_COLUMNS}
-        
-        real_smart_found = False
+    # 2. Local SMART Logic for supplemental data
+    if disk_analytics.is_admin():
         try:
-            if disk_analytics.is_admin():
-                c = wmi.WMI(namespace="root\\wmi")
-                smart_data = c.MSStorageDriver_ATAPISmartData()
-                if smart_data:
-                    raw_data = smart_data[0].VendorSpecific
-                    parsed_results = parse_smart_data(raw_data, is_nvme=is_nvme)
-                    parsed = parsed_results["attributes"]
-                    
-                    for k in advanced_metrics:
-                        if parsed_results[k] is not None and parsed_results[k] != 0:
-                            advanced_metrics[k] = parsed_results[k]
-                    
-                    # 3. Fallback to PowerShell for even better accuracy/missing fields
-                    for k in ps_metrics:
-                        if ps_metrics[k] is not None and ps_metrics[k] != 0:
-                            # If we already have a realistic temperature from SMART (20-95 C), 
-                            # don't let PS (which often gives controller temp) overwrite it.
-                            if k == "temperature_c" and advanced_metrics[k] is not None and 20 < advanced_metrics[k] < 95:
-                                continue
-                            advanced_metrics[k] = ps_metrics[k]
-
-                    id_map = {1: "smart_1_raw", 5: "smart_5_raw", 7: "smart_7_raw", 9: "smart_9_raw",
-                               187: "smart_187_raw", 188: "smart_188_raw", 193: "smart_193_raw",
-                               194: "smart_194_raw", 197: "smart_197_raw", 198: "smart_198_raw"}
-                    
-                    for sid, fname in id_map.items():
-                        features[fname] = parsed.get(sid, 0)
-                    real_smart_found = True
+            c = wmi.WMI(namespace="root\\wmi")
+            smart_data = c.MSStorageDriver_ATAPISmartData()
+            if smart_data:
+                raw_data = smart_data[0].VendorSpecific
+                parsed_results = parse_smart_data(raw_data, is_nvme=is_nvme)
+                for k in advanced_metrics:
+                    if parsed_results.get(k) is not None and parsed_results[k] != 0:
+                        advanced_metrics[k] = parsed_results[k]
         except:
             pass
-
-        if not real_smart_found:
-            global previous_disk_io
-            io_act = (previous_disk_io.read_count + previous_disk_io.write_count) % 100 if previous_disk_io else 0
-            features["smart_1_raw"] = io_act * 2
-            features["smart_9_raw"] = 15000 + io_act
-            features["smart_194_raw"] = 35 + (io_act % 10)
-        
-        features["model_ST8000NM0055"] = 1
-        
-        # 2. Predict raw probability
-        vector = [features[col] for col in disk_analytics.MODEL_COLUMNS]
-        input_data = np.array([vector])
-        raw_prob = float(disk_analytics.MODEL.predict_proba(input_data)[0][1])
-        
-        # 3. Apply Exponential Moving Average (EMA) to smooth fluctuations
-        # This prevents jerky jumps from 0 to 0.34 caused by transient sensor noise
-        ema_failure_probability = (raw_prob * disk_analytics.EMA_ALPHA) + (ema_failure_probability * (1 - disk_analytics.EMA_ALPHA))
-        
-        # 4. Noise Floor: If probability is extremely low, keep it at baseline
-        if ema_failure_probability < 0.0001:
-            ema_failure_probability = 0.000001
             
-        return ema_failure_probability, advanced_metrics
-        
-    except Exception as e:
-        print(f"Prediction error: {e}")
-        return ema_failure_probability, advanced_metrics
+    # 3. Prioritize PowerShell for NVMe temp if realistic
+    for k in ps_metrics:
+        if ps_metrics[k] is not None and ps_metrics[k] != 0:
+            # NVMe Controller temp vs Flash temp handling
+            if k == "temperature_c" and advanced_metrics[k] > 0 and advanced_metrics[k] < 80:
+                continue
+            advanced_metrics[k] = ps_metrics[k]
+
+    # 4. Use consolidated prediction from analytics module
+    global previous_disk_io
+    prediction = disk_analytics.get_failure_prediction(previous_disk_io)
+    
+    return prediction, advanced_metrics
 
 
 def generate_battery_data():
@@ -432,9 +393,9 @@ def generate_battery_data():
                 "secsleft": bat["secsleft"],
                 "power_plugged": bat["power_plugged"]
             },
-            "voltage": round(10.5 + (bat["percent"] / 100) * 1.5, 2),
+            "voltage": round(max(9.0, min(14.0, 10.5 + (bat["percent"] / 100) * 1.5)), 2),
             "temperature": 35 if bat["percent"] > 50 else 40,
-            "power_draw": round(15 + (100 - bat["percent"]) * 0.2, 2)
+            "power_draw": round(max(5.0, min(65.0, 15 + (100 - bat["percent"]) * 0.2)), 2)
         },
         "static": {
             "design_capacity_mwh": 50000,
@@ -482,7 +443,7 @@ def generate_disk_data():
         pass
 
     is_nvme = "NVMe" in disk_details["interface"] or "NVMe" in disk_details["model"]
-    prediction, hardware_health = get_failure_prediction(is_nvme=is_nvme)
+    prediction, hardware_health = get_extended_disk_metrics(is_nvme=is_nvme)
     
     return {
         "current": {
