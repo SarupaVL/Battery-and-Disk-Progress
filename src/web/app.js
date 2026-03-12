@@ -41,7 +41,49 @@ function initApp() {
   updateClock();
   setInterval(updateClock, 1000);
 
+  // Digital Glitch Typing for Landing Page
+  runGlitchTyping();
+
   console.log('[OK] Battery & Disk Neural Core initialized');
+}
+
+/**
+ * Advanced Looping Glitch Typing Effect for Landing Page
+ */
+function runGlitchTyping() {
+  const target = document.querySelector('.accent-text');
+  if (!target) return;
+
+  const originalText = "Prevent Failure.";
+  const glitchChars = "01$#!<>_/";
+  
+  function glitchCycle() {
+    let iteration = 0;
+    const typeInterval = setInterval(() => {
+      target.textContent = originalText
+        .split("")
+        .map((char, index) => {
+          if (index < iteration) {
+            return originalText[index];
+          }
+          return glitchChars[Math.floor(Math.random() * glitchChars.length)];
+        })
+        .join("");
+
+      if (iteration >= originalText.length) {
+        clearInterval(typeInterval);
+        target.textContent = originalText;
+        
+        // Wait 4 seconds then glitch again
+        setTimeout(glitchCycle, 4000);
+      }
+
+      iteration += 1 / 3;
+    }, 30);
+  }
+
+  // Start the first cycle
+  glitchCycle();
 }
 
 /**
