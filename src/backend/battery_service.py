@@ -26,6 +26,7 @@ import disk_analytics
 import threading
 import ctypes
 from collections import defaultdict
+from influx_storage import InfluxDBManager
 
 try:
     import psutil
@@ -610,6 +611,9 @@ def main():
     battery_history = []
     disk_history = []
     
+    # Initialize InfluxDB
+    influx_manager = InfluxDBManager()
+    
     try:
         # Start Storage Analyzer (scan entire C: drive in background)
         scan_paths = ['C:\\'] 
@@ -643,6 +647,12 @@ def main():
             
             # 1. Append to persistent CSV (Analytics)
             log_to_csv(battery_data)
+            
+            # 2. Log to InfluxDB (Remote)
+            try:
+                influx_manager.log_data(battery_data, disk_data)
+            except Exception as e:
+                print(f"⚠️ InfluxDB task error: {e}")
             
             # 3. Compute detailed analytics from CSV
             try:
