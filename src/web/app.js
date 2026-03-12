@@ -19,7 +19,7 @@ let currentUser = null;
  * Initialize the application
  */
 function initApp() {
-  console.log('🚀 Initializing Battery & Disk Neural Core...');
+  console.log('[INIT] Initializing Battery & Disk Neural Core...');
 
   // Set up neural network background
   initNeuralNetwork();
@@ -31,6 +31,9 @@ function initApp() {
   // Set up tab switching
   setupTabNavigation();
 
+  // Set up neural interaction
+  setupNeuralCursor();
+
   // Initialize authentication (which will trigger data fetching if logged in)
   initAuth();
 
@@ -38,14 +41,14 @@ function initApp() {
   updateClock();
   setInterval(updateClock, 1000);
 
-  console.log('✅ Battery & Disk Neural Core initialized');
+  console.log('[OK] Battery & Disk Neural Core initialized');
 }
 
 /**
  * Start data subscriptions
  */
 function startDataSubscriptions() {
-  console.log('📡 Starting data subscriptions...');
+  console.log('[DATA] Starting data subscriptions...');
   dataLoader.subscribeBattery(onBatteryDataUpdate);
   dataLoader.subscribeDisk(onDiskDataUpdate);
 }
@@ -86,7 +89,7 @@ function setupTabNavigation() {
  */
 function onBatteryDataUpdate(data) {
   currentBatteryData = data;
-  console.log('📊 Battery data updated:', data.current.psutil.percent + '%');
+  console.log('[METRICS] Battery data updated:', data.current.psutil.percent + '%');
 
   // Update all battery UI components
   updateBatteryGauge(data);
@@ -1112,7 +1115,7 @@ async function initAuth() {
 
   // Function to transition from landing to dashboard
   const enterDashboard = (userData) => {
-    console.log('🚪 Attempting to enter dashboard...');
+    console.log('[AUTH] Attempting to enter dashboard...');
     if (landingPage) {
         landingPage.classList.add('hidden');
         landingPage.style.display = 'none'; // Fallback
@@ -1122,7 +1125,7 @@ async function initAuth() {
       dashboardApp.classList.add('card-animate');
     }
     startDataSubscriptions();
-    console.log('🔓 Dashboard unlocked for:', userData.email);
+    console.log('[AUTH] Dashboard unlocked for:', userData.email);
   };
 
   try {
@@ -1153,17 +1156,59 @@ async function initAuth() {
         };
       }
       
-      console.log('👤 Session detected for:', data.email);
+      console.log('[USER] Session detected for:', data.email);
     } else {
       currentUser = null;
       if (userProfile) userProfile.style.display = 'none';
       if (landingPage) landingPage.classList.remove('hidden');
       if (dashboardApp) dashboardApp.style.display = 'none';
-      console.log('👤 No active session');
+      console.log('[USER] No active session');
     }
   } catch (err) {
     console.error('Auth check error:', err);
   }
+}
+
+/**
+ * Set up the custom Neural Cursor interaction
+ */
+function setupNeuralCursor() {
+  const cursor = document.getElementById('neuralCursor');
+  const coords = document.getElementById('cursorCoords');
+  
+  if (!cursor) return;
+
+  document.addEventListener('mousemove', (e) => {
+    // Reveal cursor on first move
+    cursor.style.opacity = '1';
+    cursor.style.visibility = 'visible';
+    
+    // Position cursor
+    cursor.style.transform = `translate3d(${e.clientX - 16}px, ${e.clientY - 16}px, 0)`;
+    
+    // Update coordinates
+    if (coords) {
+      coords.textContent = `${e.clientX.toString().padStart(3, '0')} | ${e.clientY.toString().padStart(3, '0')}`;
+    }
+  });
+
+  document.addEventListener('mouseleave', () => {
+    cursor.style.opacity = '0';
+  });
+
+  // Hover detection for interactive elements
+  const interactives = 'a, button, .card, .glass-card, input';
+  document.addEventListener('mouseover', (e) => {
+    if (e.target.closest(interactives)) {
+      cursor.classList.add('cursor-hover');
+    }
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    if (e.target.closest(interactives)) {
+      cursor.classList.remove('cursor-hover');
+    }
+  });
 }
 
 // Initialize app when DOM is loaded
