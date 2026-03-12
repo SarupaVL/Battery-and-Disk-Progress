@@ -135,7 +135,7 @@ h1, h2, h3, h4, .outfit {
 .landing-page {
     display: flex;
     flex-direction: column;
-    padding: 3rem 4rem;
+    padding: 3rem 4rem 3rem 12rem;
     min-height: 100vh;
     position: relative;
     z-index: 1;
@@ -196,9 +196,10 @@ h1, h2, h3, h4, .outfit {
 }
 
 .accent-text {
-    color: var(--primary);
-    text-shadow: 0 0 30px var(--primary-glow);
-    animation: neuralFlicker 4s infinite;
+  color: var(--primary);
+  text-shadow:
+    0 0 4px var(--primary-glow),
+    0 0 10px var(--primary-glow);
 }
 
 @keyframes neuralFlicker {
