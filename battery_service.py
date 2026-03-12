@@ -15,6 +15,8 @@ import wmi
 import csv
 import battery_analytics
 import disk_analytics
+import threading
+import ctypes
 from collections import defaultdict
 
 try:
@@ -27,7 +29,65 @@ previous_disk_io = None
 previous_process_writes = {}
 last_log_timestamp = 0  # To prevent duplicate logs within the same second
 
-# Ensure console can handle emojis
+# Storage Efficiency Tracker
+storage_efficiency = {
+    "logical_bytes": 0,
+    "physical_bytes": 0,
+    "files_scanned": 0,
+    "status": "initializing"
+}
+
+class StorageAnalyzer(threading.Thread):
+    def __init__(self, paths_to_scan):
+        super().__init__(daemon=True)
+        self.paths = paths_to_scan
+        self.kernel32 = ctypes.windll.kernel32
+        
+    def get_physical_size(self, path):
+        try:
+            low = self.kernel32.GetCompressedFileSizeW(path, None)
+            if low == 0xFFFFFFFF:
+                # Error or wait for high part (unlikely for normal files)
+                return os.path.getsize(path)
+            return low
+        except:
+            return 0
+
+    def run(self):
+        global storage_efficiency
+        storage_efficiency["status"] = "scanning"
+        
+        while True:
+            logical_total = 0
+            physical_total = 0
+            scanned_count = 0
+            
+            for base_path in self.paths:
+                if not os.path.exists(base_path): continue
+                
+                for root, dirs, files in os.walk(base_path):
+                    for f in files:
+                        try:
+                            fp = os.path.join(root, f)
+                            l_size = os.path.getsize(fp)
+                            p_size = self.get_physical_size(fp)
+                            
+                            logical_total += l_size
+                            physical_total += max(l_size, p_size) # Cluster alignment usually makes it bigger
+                            scanned_count += 1
+                            
+                            storage_efficiency["logical_bytes"] = logical_total
+                            storage_efficiency["physical_bytes"] = physical_total
+                            storage_efficiency["files_scanned"] = scanned_count
+                            
+                            # Throttle to avoid system lag
+                            if scanned_count % 100 == 0:
+                                time.sleep(0.01)
+                        except:
+                            continue
+            
+            storage_efficiency["status"] = "complete"
+            time.sleep(3600) # Re-scan every hour
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding='utf-8')
@@ -311,7 +371,8 @@ def generate_disk_data():
             "daily_growth_bytes": 0,
             "growth_rate_bytes_per_hour": 0,
             "estimated_days_to_full": 999,
-            "neural_health_label": "SAFE" if prediction < 0.1 else ("WARNING" if prediction < 0.5 else "CRITICAL")
+            "neural_health_label": "SAFE" if prediction < 0.1 else ("WARNING" if prediction < 0.5 else "CRITICAL"),
+            "storage_efficiency": storage_efficiency
         },
         "history": []
     }
@@ -395,6 +456,10 @@ def main():
     disk_history = []
     
     try:
+        # Start Storage Analyzer (scan entire C: drive in background)
+        scan_paths = ['C:\\'] 
+        StorageAnalyzer(scan_paths).start()
+        
         while True:
             # Get current data
             battery_data = generate_battery_data()

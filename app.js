@@ -116,6 +116,7 @@ function onDiskDataUpdate(data) {
   updateTopProcesses(data);
   updateDiskTimeSeriesChart(data);
   updateNeuralHealth(data);
+  updateStorageEfficiency(data);
 }
 
 /**
@@ -315,6 +316,48 @@ function updateDiskAnalytics(data) {
   if (modelElem) modelElem.textContent = details.model || 'Unknown';
   if (interfaceElem) interfaceElem.textContent = details.interface || 'Unknown';
   if (serialElem) serialElem.textContent = details.serial || 'Unknown';
+}
+
+/**
+ * Update storage efficiency (Logical vs Physical)
+ */
+function updateStorageEfficiency(data) {
+  const stats = data.analytics.storage_efficiency;
+  if (!stats) return;
+
+  const logicalElem = document.getElementById('logicalSize');
+  const physicalElem = document.getElementById('physicalSize');
+  const efficiencyElem = document.getElementById('storageEfficiency');
+  const barFill = document.getElementById('efficiencyBarFill');
+  const statusElem = document.getElementById('storageScanStatus');
+
+  if (!logicalElem || !physicalElem || !efficiencyElem || !barFill) return;
+
+  // Format sizes
+  logicalElem.textContent = formatBytes(stats.logical_bytes);
+  physicalElem.textContent = formatBytes(stats.physical_bytes);
+
+  // Update Status
+  if (statusElem) {
+      const count = stats.files_scanned.toLocaleString();
+      if (stats.status === 'scanning') {
+          statusElem.textContent = `Scanning Disk... (${count} files)`;
+          statusElem.style.color = 'rgba(0, 243, 255, 0.6)';
+      } else if (stats.status === 'complete') {
+          statusElem.textContent = `Scan Complete (${count} files)`;
+          statusElem.style.color = 'rgba(0, 255, 136, 0.6)';
+      }
+  }
+
+  // Calculate efficiency percentage (how much of physical is logical)
+  if (stats.physical_bytes > 0) {
+    const ratio = (stats.logical_bytes / stats.physical_bytes) * 100;
+    efficiencyElem.textContent = ratio.toFixed(2) + '%';
+    barFill.style.width = Math.min(100, ratio) + '%';
+  } else {
+    efficiencyElem.textContent = '--%';
+    barFill.style.width = '0%';
+  }
 }
 
 /**

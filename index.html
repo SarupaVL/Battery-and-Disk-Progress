@@ -358,6 +358,32 @@
             </div>
           </div>
         </div>
+        
+        <!-- Storage Efficiency -->
+        <div class="card glass-card card-small card-animate" style="animation-delay: 200ms">
+          <div class="card-header">
+            <h3>STORAGE EFFICIENCY</h3>
+            <div class="card-icon">📐</div>
+          </div>
+          <div class="card-body">
+            <div class="analytics-item">
+              <span class="ana-label">File Size</span>
+              <span class="ana-value" id="logicalSize">--</span>
+            </div>
+            <div class="analytics-item">
+              <span class="ana-label">On Disk</span>
+              <span class="ana-value" id="physicalSize">--</span>
+            </div>
+            <div class="analytics-item">
+              <span class="ana-label">Optimization</span>
+              <span class="ana-value" id="storageEfficiency">--</span>
+            </div>
+            <div class="prediction-bar-container" style="margin-top: 10px; height: 4px;">
+              <div class="prediction-bar-fill" id="efficiencyBarFill" style="width: 0%; background: linear-gradient(90deg, #00f3ff, #00ff88);"></div>
+            </div>
+            <div id="storageScanStatus" style="font-size: 9px; color: rgba(255,255,255,0.4); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Initializing scanner...</div>
+          </div>
+        </div>
 
         <!-- I/O Rate Stats -->
         <div class="card glass-card card-mini card-animate" style="animation-delay: 300ms">
