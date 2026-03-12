@@ -296,57 +296,19 @@ function updateIOStats(ioRates) {
 }
 
 /**
- * Calculate and update disk analytics
+ * Update disk details from telemetry
  */
 function updateDiskAnalytics(data) {
-  if (diskHistory.length < 2) {
-    const dailyGrowthElem = document.getElementById('dailyGrowth');
-    const timeToFullElem = document.getElementById('timeToFull');
-    if (dailyGrowthElem) dailyGrowthElem.textContent = '-- GB/day';
-    if (timeToFullElem) timeToFullElem.textContent = '-- days';
-    return;
-  }
+  const details = data.current.details;
+  if (!details) return;
 
-  // Calculate daily growth rate
-  const oldest = diskHistory[0];
-  const newest = diskHistory[diskHistory.length - 1];
-  const timeDiffMs = newest.timestamp - oldest.timestamp;
-  const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
+  const modelElem = document.getElementById('diskModel');
+  const interfaceElem = document.getElementById('diskInterface');
+  const serialElem = document.getElementById('diskSerial');
 
-  const bytesDelta = newest.usedBytes - oldest.usedBytes;
-  const bytesPerHour = bytesDelta / Math.max(timeDiffHours, 0.016);
-  const bytesPerDay = bytesPerHour * 24;
-  const gbPerDay = bytesPerDay / (1024 ** 3);
-
-  // Calculate time to full
-  const totalBytes = data.current.usage.total_bytes;
-  const usedBytes = data.current.usage.used_bytes;
-  const freeBytes = totalBytes - usedBytes;
-
-  let daysToFull = 999;
-  if (bytesPerDay > 0) {
-    daysToFull = (freeBytes / (1024 ** 3)) / gbPerDay;
-  }
-
-  // Update UI
-  const dailyGrowthElem = document.getElementById('dailyGrowth');
-  const timeToFullElem = document.getElementById('timeToFull');
-
-  if (dailyGrowthElem) {
-    if (gbPerDay > 0) {
-      dailyGrowthElem.textContent = gbPerDay.toFixed(2) + ' GB/day';
-    } else {
-      dailyGrowthElem.textContent = 'Minimal';
-    }
-  }
-
-  if (timeToFullElem) {
-    if (daysToFull < 999) {
-      timeToFullElem.textContent = daysToFull.toFixed(1) + ' days';
-    } else {
-      timeToFullElem.textContent = '> 1 year';
-    }
-  }
+  if (modelElem) modelElem.textContent = details.model || 'Unknown';
+  if (interfaceElem) interfaceElem.textContent = details.interface || 'Unknown';
+  if (serialElem) serialElem.textContent = details.serial || 'Unknown';
 }
 
 /**

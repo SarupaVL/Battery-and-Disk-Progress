@@ -263,6 +263,25 @@ def generate_disk_data():
             "top_processes": []
         }
     
+    # Get physical disk details via WMI
+    disk_details = {
+        "model": "Unknown",
+        "interface": "Unknown",
+        "serial": "Unknown"
+    }
+    try:
+        c = wmi.WMI()
+        for drive in c.Win32_DiskDrive():
+            # We'll take the first one or the one matching the system drive
+            disk_details = {
+                "model": drive.Model or drive.Caption or "Unknown",
+                "interface": drive.InterfaceType or "Unknown",
+                "serial": drive.SerialNumber.strip() if drive.SerialNumber else "Unknown"
+            }
+            break
+    except:
+        pass
+
     prediction = disk_analytics.get_failure_prediction(previous_disk_io)
     
     return {
@@ -271,7 +290,8 @@ def generate_disk_data():
             "usage": disk["usage"],
             "io_rates": disk["io_rates"],
             "top_processes": disk["top_processes"],
-            "failure_probability": prediction
+            "failure_probability": prediction,
+            "details": disk_details
         },
         "analytics": {
             "daily_growth_bytes": 0,
@@ -465,8 +485,6 @@ if __name__ == "__main__":
         print("❌ Windows only!")
         sys.exit(1)
     
-    # Attempt to elevate if not admin (needed for real SMART data)
-    if not disk_analytics.is_admin():
-        disk_analytics.run_as_admin()
-    else:
-        main()
+    # Run the main service immediately. 
+    # SMART data collection handles its own admin check and falls back gracefully.
+    main()
