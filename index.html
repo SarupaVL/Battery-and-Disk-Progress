@@ -171,6 +171,7 @@
           <div class="card-header">
             <h3>PREDICTIVE MAINTENANCE</h3>
             <div class="card-icon">🧠</div>
+            <div id="mlStatusBadge" class="status-badge-small" style="display:none">ML ACTIVE</div>
           </div>
           <div class="card-body">
             <div class="predictive-metrics">
@@ -238,6 +239,11 @@
               <span class="ana-label">Max Drain Spike</span>
               <span class="ana-value" id="maxDrainSpike">-- %/hr</span>
             </div>
+            <div class="analytics-item has-tooltip" style="margin-top: 15px;"
+              data-tooltip="The period of highest battery consumption recorded">
+              <span class="ana-label">Worst Window</span>
+              <span class="ana-value" id="worstWindow" style="font-size: 11px;">--</span>
+            </div>
           </div>
         </div>
 
@@ -282,6 +288,27 @@
                 <div class="gauge-label">USED</div>
                 <div class="gauge-time" id="diskFreeSpace">-- GB free</div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Neural Health Prediction (NEW) -->
+        <div class="card glass-card card-medium card-animate" style="animation-delay: 50ms">
+          <div class="card-header">
+            <h3>NEURAL HEALTH CORE</h3>
+            <div class="card-icon">🧠</div>
+          </div>
+          <div class="card-body prediction-display">
+            <div class="prediction-status" id="predictionStatus">
+              <div class="status-indicator" id="predictionIndicator"></div>
+              <span id="predictionLabel">INITIALIZING...</span>
+            </div>
+            <div class="prediction-value-wrapper">
+              <div class="prediction-percent" id="predictionPercent">--%</div>
+              <div class="prediction-description" id="predictionDesc">FAILURE PROBABILITY</div>
+            </div>
+            <div class="prediction-bar-container">
+              <div class="prediction-bar-fill" id="predictionBarFill"></div>
             </div>
           </div>
         </div>

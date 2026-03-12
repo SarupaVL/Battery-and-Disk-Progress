@@ -43,3 +43,5 @@ local_train_rf.py
 # Locks
 *.lock
 
+#Data
+backblaze/

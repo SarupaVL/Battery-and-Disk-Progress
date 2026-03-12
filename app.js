@@ -115,6 +115,7 @@ function onDiskDataUpdate(data) {
   updateDiskAnalytics(data);
   updateTopProcesses(data);
   updateDiskTimeSeriesChart(data);
+  updateNeuralHealth(data);
 }
 
 /**
@@ -215,6 +216,41 @@ function updateDiskGaugeColor(percent) {
   } else {
     stop1.setAttribute('stop-color', '#00f3ff');
     stop2.setAttribute('stop-color', '#00ff88');
+  }
+}
+
+/**
+ * Update Neural Health Prediction UI
+ */
+function updateNeuralHealth(data) {
+  const prediction = data.current.failure_probability || 0;
+  const healthLabel = data.analytics.neural_health_label || 'SAFE';
+
+  const percentElem = document.getElementById('predictionPercent');
+  const labelElem = document.getElementById('predictionLabel');
+  const barFill = document.getElementById('predictionBarFill');
+  const displayCard = document.querySelector('.prediction-display')?.parentElement;
+
+  if (!percentElem || !labelElem || !barFill) return;
+
+  // Update value with animation if significantly changed
+  const probPercent = (prediction * 100).toFixed(2);
+  percentElem.textContent = probPercent + '%';
+  labelElem.textContent = healthLabel;
+  barFill.style.width = Math.max(2, probPercent) + '%';
+
+  // Update description based on status
+  const descElem = document.getElementById('predictionDesc');
+  if (descElem) {
+    if (healthLabel === 'SAFE') descElem.textContent = 'SYSTEM STABLE';
+    else if (healthLabel === 'WARNING') descElem.textContent = 'ANOMALY DETECTED';
+    else if (healthLabel === 'CRITICAL') descElem.textContent = 'HARDWARE RISK';
+  }
+
+  // Update CSS classes for risk levels
+  if (displayCard) {
+    displayCard.classList.remove('risk-safe', 'risk-warning', 'risk-critical');
+    displayCard.classList.add(`risk-${healthLabel.toLowerCase()}`);
   }
 }
 
@@ -459,6 +495,12 @@ function updatePredictiveAnalytics(data) {
     }
   }
 
+  // Update ML Active Badge
+  const mlBadge = document.getElementById('mlStatusBadge');
+  if (mlBadge) {
+    mlBadge.style.display = data.predictive_maintenance.ml_health_predicted ? 'block' : 'none';
+  }
+
   // Update other stats
   const drainRateElem = document.getElementById('drainRate');
   if (drainRateElem) drainRateElem.textContent = drain + '%/hr';
@@ -502,6 +544,14 @@ function updateExtraAnalytics(data) {
 
     if (dailyAvgDrain) dailyAvgDrain.textContent = (data.battery_summary.daily.average_drain_rate || 0).toFixed(1) + ' %/hr';
     if (maxDrainSpike) maxDrainSpike.textContent = (data.battery_summary.daily.max_drain_spike || 0).toFixed(1) + ' %/hr';
+  }
+
+  // Worst Window
+  const worstWindow = document.getElementById('worstWindow');
+  if (worstWindow && data.battery_analytics?.worst_drain_window) {
+    const start = new Date(data.battery_analytics.worst_drain_window.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const end = new Date(data.battery_analytics.worst_drain_window.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    worstWindow.textContent = `${start} - ${end}`;
   }
 }
 
