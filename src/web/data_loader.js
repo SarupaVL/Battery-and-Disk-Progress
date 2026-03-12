@@ -68,7 +68,7 @@ class DataLoader {
    */
   async fetchBatteryData() {
     try {
-      const response = await fetch(`battery_data.json?t=${Date.now()}`);
+      const response = await fetch(`/data/battery_data.json?t=${Date.now()}`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -87,7 +87,7 @@ class DataLoader {
    */
   async fetchDiskData() {
     try {
-      const response = await fetch(`disk_data.json?t=${Date.now()}`);
+      const response = await fetch(`/data/disk_data.json?t=${Date.now()}`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }

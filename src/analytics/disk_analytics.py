@@ -42,8 +42,8 @@ def run_as_admin():
         return False
 
 # Model Configuration
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(SCRIPT_DIR, "Disk_ML", "disk_failure_model_gpu.pkl")
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+MODEL_PATH = os.path.join(ROOT_DIR, "models", "Disk_ML", "disk_failure_model_gpu.pkl")
 MODEL = None
 
 try:

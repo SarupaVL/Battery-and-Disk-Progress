@@ -4,6 +4,9 @@ import math
 from datetime import datetime, timedelta
 from collections import defaultdict
 
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DEFAULT_CSV = os.path.join(ROOT_DIR, "data", "battery_history.csv")
+
 try:
     import pandas as pd
     HAS_PANDAS = True
@@ -44,12 +47,12 @@ def get_discharging_history(csv_file, minutes):
                 except (ValueError, KeyError):
                     continue
     except Exception as e:
-        print(f"⚠️ Analytics read error: {e}")
+        print(f"ΓÜá∩╕Å Analytics read error: {e}")
         return []
 
     return history
 
-def calculate_drain_rate(csv_file="battery_history.csv", is_plugged_in=False):
+def calculate_drain_rate(csv_file=DEFAULT_CSV, is_plugged_in=False):
     """Compute battery drain rate as median of slopes to ignore reporting jitter and spikes"""
     if is_plugged_in:
         return {"drain_rate_percent_per_hour": 0.0}
@@ -107,7 +110,7 @@ def calculate_drain_rate(csv_file="battery_history.csv", is_plugged_in=False):
         "drain_rate_percent_per_hour": round(final_rate, 2)
     }
 
-def detect_worst_drain_period(csv_file="battery_history.csv"):
+def detect_worst_drain_period(csv_file=DEFAULT_CSV):
     """Scan the last 2 hours of history and find the time window with the highest drain slope (O(N) sliding window)"""
     history = get_discharging_history(csv_file, 120)
     
@@ -160,7 +163,7 @@ def detect_worst_drain_period(csv_file="battery_history.csv"):
     }
 
 
-def calculate_battery_health(csv_file="battery_history.csv"):
+def calculate_battery_health(csv_file=DEFAULT_CSV):
     """Calculate battery health from the most recent CSV row's capacity values"""
     if not os.path.exists(csv_file):
         return {"battery_health_percent": 0.0, "design_capacity_mwh": 0, "full_charge_capacity_mwh": 0}
@@ -175,7 +178,7 @@ def calculate_battery_health(csv_file="battery_history.csv"):
                 design = float(row.get("design_capacity_mwh", 0))
                 full_charge = float(row.get("full_charge_capacity_mwh", 0))
     except Exception as e:
-        print(f"⚠️ Health read error: {e}")
+        print(f"ΓÜá∩╕Å Health read error: {e}")
 
     if design <= 0:
         return {"battery_health_percent": 0.0, "design_capacity_mwh": design, "full_charge_capacity_mwh": full_charge}
@@ -223,7 +226,7 @@ def _drain_rate_for_segment(rows):
     return max(0.0, (rows[0]['battery_percent'] - rows[-1]['battery_percent']) / time_diff)
 
 
-def generate_daily_summary(csv_file="battery_history.csv"):
+def generate_daily_summary(csv_file=DEFAULT_CSV):
     """Generate a summary of the last 24 hours of battery usage"""
     now = datetime.now()
     since = now - timedelta(hours=24)
@@ -255,7 +258,7 @@ def generate_daily_summary(csv_file="battery_history.csv"):
     }
 
 
-def generate_weekly_summary(csv_file="battery_history.csv"):
+def generate_weekly_summary(csv_file=DEFAULT_CSV):
     """Generate a summary of the last 7 days of battery usage"""
     now = datetime.now()
     since = now - timedelta(days=7)
@@ -319,7 +322,7 @@ def _weekly_summary_pure(rows):
     return {"avg_daily_drain_rate": avg_rate, "highest_drain_day": highest, "lowest_drain_day": lowest}
 
 
-def detect_drain_spike(csv_file="battery_history.csv"):
+def detect_drain_spike(csv_file=DEFAULT_CSV):
     """Detect anomalous drain spikes using mean + 3*std deviation threshold over last 3 hours"""
     rows = _read_all_discharging_rows(csv_file, datetime.now() - timedelta(hours=3))
 
@@ -356,7 +359,7 @@ def detect_drain_spike(csv_file="battery_history.csv"):
     }
 
 
-def analyze_charging_habits(csv_file="battery_history.csv"):
+def analyze_charging_habits(csv_file=DEFAULT_CSV):
     """Analyze charging habits: total charging time, time above 90%, percent time above 90"""
     if not os.path.exists(csv_file):
         return {"time_charging_minutes": 0.0, "time_above_90_minutes": 0.0, "percent_time_above_90": 0.0}
@@ -429,7 +432,7 @@ def calculate_risk_score(battery_health_percent=96.0,
     
     if ML_AVAILABLE:
         try:
-            model_path = os.path.join(os.path.dirname(__file__), 'battery_rf_model.joblib')
+            model_path = os.path.join(ROOT_DIR, 'models', 'battery_rf_model.joblib')
             if os.path.exists(model_path):
                 # Load the model
                 model = joblib.load(model_path)
@@ -444,7 +447,7 @@ def calculate_risk_score(battery_health_percent=96.0,
                 # Cap the prediction
                 ml_health_score = max(0.0, min(100.0, ml_health_score))
         except Exception as e:
-            print(f"⚠️ ML Prediction Error: {e}")
+            print(f"ΓÜá∩╕Å ML Prediction Error: {e}")
 
     # Use ML predicted health if available, otherwise fallback to basic heuristic
     active_health_score = ml_health_score if ml_health_score is not None else battery_health_percent

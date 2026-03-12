@@ -21,12 +21,12 @@ if %errorlevel% neq 0 (
 
 REM Start background service
 echo Starting background battery service...
-start "Battery Service" cmd /k "cd /d "%cd%" && python src\backend\battery_service.py"
+start "Battery Service" cmd /k "cd /d "%cd%" && python battery_service.py"
 timeout /t 2 >nul
 
 REM Start web server
 echo Starting web server...
-start "Battery Dashboard" cmd /k "cd /d "%cd%" && python src\backend\server.py 3000"
+start "Battery Dashboard" cmd /k "cd /d "%cd%" && python server.py 3000"
 timeout /t 2 >nul
 
 REM Open browser
@@ -39,7 +39,7 @@ echo   ✅ Dashboard is running!
 echo ========================================
 echo.
 echo 📍 Dashboard: http://localhost:3000
-echo 📊 Battery data file: data\battery_data.json
+echo 📊 Battery data file: battery_data.json
 echo.
 echo Close these windows to stop.
 echo.

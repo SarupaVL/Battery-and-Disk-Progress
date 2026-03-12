@@ -13,6 +13,14 @@ import numpy as np
 import ctypes
 import wmi
 import csv
+import sys
+import os
+
+# Add required directories to sys.path to allow imports from other directories
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, ROOT_DIR)
+sys.path.insert(0, os.path.join(ROOT_DIR, "src", "analytics"))
+
 import battery_analytics
 import disk_analytics
 import threading
@@ -103,11 +111,11 @@ def get_powershell_metrics():
         if output:
             data = json.loads(output)
             if data:
-                with open("ps_debug.log", "a") as df:
+                with open(os.path.join(ROOT_DIR, "logs", "ps_debug.log"), "a") as df:
                     df.write(f"PS HealthReport OK: {data.get('Temperature')} C\n")
                 results["temperature_c"] = data.get("Temperature")
     except Exception as e:
-        with open("ps_debug.log", "a") as df:
+        with open(os.path.join(ROOT_DIR, "logs", "ps_debug.log"), "a") as df:
             df.write(f"PS HealthReport Error: {e}\n")
     
     try:
@@ -125,7 +133,7 @@ def get_powershell_metrics():
                 if r_bytes and 0 < r_bytes < 1e16: results["total_host_reads_gb"] = round(r_bytes / (1024**3), 2)
                 if w_bytes and 0 < w_bytes < 1e16: results["total_host_writes_gb"] = round(w_bytes / (1024**3), 2)
     except Exception as e:
-        with open("ps_debug.log", "a") as df:
+        with open(os.path.join(ROOT_DIR, "logs", "ps_debug.log"), "a") as df:
             df.write(f"PS Reliability Error: {e}\n")
 
     return {k: v for k, v in results.items() if v is not None and v != 0}
@@ -499,7 +507,7 @@ def generate_disk_data():
 
 def log_to_csv(battery_data):
     """Log battery telemetry to a persistent CSV file"""
-    csv_file = "battery_history.csv"
+    csv_file = os.path.join(ROOT_DIR, "data", "battery_history.csv")
     headers = [
         "timestamp", 
         "battery_percent", 
@@ -567,7 +575,7 @@ def main():
         return
 
     # Singleton Lock
-    lock_file = "battery_service.lock"
+    lock_file = os.path.join(ROOT_DIR, "data", "battery_service.lock")
     if os.path.exists(lock_file):
         try:
             # Check if process is actually running
@@ -685,14 +693,14 @@ def main():
 
             # 4. Write battery JSON (Dashboard)
             try:
-                with open("battery_data.json", "w") as f:
+                with open(os.path.join(ROOT_DIR, "data", "battery_data.json"), "w") as f:
                     json.dump(battery_data, f, indent=4)
             except Exception as e:
                 print(f"❌ Battery JSON write error: {e}")
 
             # 5. Write disk JSON
             try:
-                with open("disk_data.json", "w") as f:
+                with open(os.path.join(ROOT_DIR, "data", "disk_data.json"), "w") as f:
                     json.dump(disk_data, f, indent=4)
             except Exception as e:
                 print(f"❌ Disk JSON write error: {e}")

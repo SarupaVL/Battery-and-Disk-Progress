@@ -17,7 +17,10 @@ if sys.platform == "win32":
         pass
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 3000
-CSV_FILE = "battery_history.csv"
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+CSV_FILE = os.path.join(ROOT_DIR, "data", "battery_history.csv")
+STATIC_DIR = os.path.join(ROOT_DIR, "src", "web")
+DATA_DIR = os.path.join(ROOT_DIR, "data")
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -33,8 +36,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.handle_battery_history(parsed)
         elif parsed.path == '/battery/export':
             self.handle_battery_export(parsed)
+        elif parsed.path.startswith('/data/'):
+            self.handle_data_request(parsed)
         else:
-            super().do_GET()
+            # Override translate_path to serve from STATIC_DIR
+            original_path = self.path
+            if self.path == '/':
+                self.path = '/index.html'
+            
+            # Remove query params for path resolution
+            clean_path = self.path.split('?')[0].split('#')[0]
+            file_path = os.path.join(STATIC_DIR, clean_path.lstrip('/'))
+            
+            if os.path.exists(file_path) and os.path.isfile(file_path):
+                # SimpleHTTPRequestHandler.do_GET calls translate_path(self.path)
+                # We need to make self.path relative to CWD for it to work
+                rel_path = os.path.relpath(file_path, os.getcwd())
+                self.path = '/' + rel_path.replace('\\', '/')
+                super().do_GET()
+            else:
+                self.send_json_error(404, f"File not found: {clean_path}")
+            self.path = original_path
 
     def handle_battery_history(self, parsed):
         """GET /battery/history?start=ISO&end=ISO"""
@@ -153,6 +175,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Content-Length', str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def handle_data_request(self, parsed):
+        """Serve JSON files from DATA_DIR"""
+        file_name = parsed.path.replace('/data/', '')
+        file_path = os.path.join(DATA_DIR, file_name)
+        
+        if not os.path.exists(file_path):
+            self.send_json_error(404, "Data file not found")
+            return
+            
+        try:
+            with open(file_path, "rb") as f:
+                body = f.read()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(body)))
+            self.send_header('Cache-Control', 'no-cache')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception as e:
+            self.send_json_error(500, f"Error reading data: {e}")
 
     def log_message(self, format, *args):
         status = str(args[1]) if len(args) > 1 else ''
