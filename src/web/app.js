@@ -166,17 +166,17 @@ function updateGaugeColor(percent) {
   if (!stop1 || !stop2) return;
 
   if (percent >= 70) {
-    stop1.setAttribute('stop-color', '#00ff88');
-    stop2.setAttribute('stop-color', '#00f3ff');
+    stop1.setAttribute('stop-color', '#10b981'); // Success Green
+    stop2.setAttribute('stop-color', '#4287f5'); // Primary Cobalt
   } else if (percent >= 30) {
-    stop1.setAttribute('stop-color', '#00f3ff');
-    stop2.setAttribute('stop-color', '#0066ff');
+    stop1.setAttribute('stop-color', '#4287f5'); // Primary
+    stop2.setAttribute('stop-color', '#6366f1'); // Indigo
   } else if (percent >= 15) {
-    stop1.setAttribute('stop-color', '#ff9500');
-    stop2.setAttribute('stop-color', '#ff6b00');
+    stop1.setAttribute('stop-color', '#f59e0b'); // Warning Orange
+    stop2.setAttribute('stop-color', '#d97706');
   } else {
-    stop1.setAttribute('stop-color', '#ff0040');
-    stop2.setAttribute('stop-color', '#ff006e');
+    stop1.setAttribute('stop-color', '#ef4444'); // Danger Red
+    stop2.setAttribute('stop-color', '#dc2626');
   }
 }
 
@@ -216,17 +216,17 @@ function updateDiskGaugeColor(percent) {
   if (!stop1 || !stop2) return;
 
   if (percent >= 90) {
-    stop1.setAttribute('stop-color', '#ff0040');
-    stop2.setAttribute('stop-color', '#ff006e');
+    stop1.setAttribute('stop-color', '#ef4444');
+    stop2.setAttribute('stop-color', '#dc2626');
   } else if (percent >= 75) {
-    stop1.setAttribute('stop-color', '#ff6b00');
-    stop2.setAttribute('stop-color', '#ff0080');
+    stop1.setAttribute('stop-color', '#f59e0b');
+    stop2.setAttribute('stop-color', '#d97706');
   } else if (percent >= 50) {
-    stop1.setAttribute('stop-color', '#ff9500');
-    stop2.setAttribute('stop-color', '#ff6b00');
+    stop1.setAttribute('stop-color', '#4287f5');
+    stop2.setAttribute('stop-color', '#6366f1');
   } else {
-    stop1.setAttribute('stop-color', '#00f3ff');
-    stop2.setAttribute('stop-color', '#00ff88');
+    stop1.setAttribute('stop-color', '#10b981');
+    stop2.setAttribute('stop-color', '#059669');
   }
 }
 
@@ -659,14 +659,14 @@ function initTimeSeriesChart() {
         {
           label: 'Battery %',
           data: [],
-          borderColor: '#00f3ff',
-          backgroundColor: 'rgba(0, 243, 255, 0.1)',
+          borderColor: '#4287f5',
+          backgroundColor: 'rgba(66, 135, 245, 0.1)',
           borderWidth: 2,
           fill: true,
           tension: 0.4,
           pointRadius: 0,
           pointHoverRadius: 6,
-          pointBackgroundColor: '#00f3ff'
+          pointBackgroundColor: '#4287f5'
         }
       ]
     },
@@ -713,14 +713,14 @@ function initDiskTimeSeriesChart() {
         {
           label: 'Active Time (%)',
           data: [],
-          borderColor: '#00e676', // Task Manager Green
-          backgroundColor: 'rgba(0, 230, 118, 0.1)',
+          borderColor: '#4287f5', 
+          backgroundColor: 'rgba(66, 135, 245, 0.1)',
           borderWidth: 2,
           fill: true,
           tension: 0.4,
           pointRadius: 0,
           pointHoverRadius: 6,
-          pointBackgroundColor: '#00e676'
+          pointBackgroundColor: '#4287f5'
         }
       ]
     },
@@ -1101,12 +1101,29 @@ async function initAuth() {
   const landingPage = document.getElementById('landingPage');
   const dashboardApp = document.getElementById('dashboardApp');
 
+  const loginBtn = document.querySelector('.google-signin-btn');
+
   if (btnLogout) {
     btnLogout.addEventListener('click', (e) => {
       e.preventDefault();
       window.location.href = '/logout';
     });
   }
+
+  // Function to transition from landing to dashboard
+  const enterDashboard = (userData) => {
+    console.log('🚪 Attempting to enter dashboard...');
+    if (landingPage) {
+        landingPage.classList.add('hidden');
+        landingPage.style.display = 'none'; // Fallback
+    }
+    if (dashboardApp) {
+      dashboardApp.style.display = 'block';
+      dashboardApp.classList.add('card-animate');
+    }
+    startDataSubscriptions();
+    console.log('🔓 Dashboard unlocked for:', userData.email);
+  };
 
   try {
     const response = await fetch('/api/me');
@@ -1115,30 +1132,34 @@ async function initAuth() {
     if (data.logged_in) {
       currentUser = data;
       
-      // Update UI
+      // Update User Identity in UI (but don't switch views yet)
       if (userProfile) userProfile.style.display = 'flex';
       if (userAvatar) userAvatar.src = data.picture;
       if (userName) userName.textContent = data.name;
       
-      // Switch Views
-      if (landingPage) landingPage.classList.add('hidden');
-      if (dashboardApp) dashboardApp.style.display = 'block';
+      // Transform Landing Page Button
+      const activeLoginBtn = document.querySelector('.google-signin-btn');
+      if (activeLoginBtn) {
+        activeLoginBtn.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"/>
+          </svg>
+          Enter Dashboard
+        `;
+        activeLoginBtn.href = "#"; 
+        activeLoginBtn.onclick = (e) => {
+          e.preventDefault();
+          enterDashboard(data);
+        };
+      }
       
-      // Start Data
-      startDataSubscriptions();
-      
-      console.log('👤 User logged in:', data.email);
+      console.log('👤 Session detected for:', data.email);
     } else {
       currentUser = null;
-      
-      // Update UI
       if (userProfile) userProfile.style.display = 'none';
-      
-      // Switch Views
       if (landingPage) landingPage.classList.remove('hidden');
       if (dashboardApp) dashboardApp.style.display = 'none';
-      
-      console.log('👤 User not logged in');
+      console.log('👤 No active session');
     }
   } catch (err) {
     console.error('Auth check error:', err);

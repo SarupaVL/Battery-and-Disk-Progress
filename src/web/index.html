@@ -20,8 +20,8 @@
   <section id="landingPage" class="landing-page">
     <div class="landing-content card-animate">
       <div class="landing-hero">
-        <h1 class="glitch-text" data-text="NEURAL CORE">NEURAL CORE</h1>
-        <p class="landing-tagline">Advanced Battery & Disk Predictive Maintenance</p>
+        <h1 class="outfit">NEURAL CORE</h1>
+        <p class="landing-tagline">Professional-Grade Hardware Predictive Maintenance</p>
       </div>
       
       <div class="landing-card glass-card">
@@ -52,7 +52,12 @@
         <div class="auth-box">
           <p>Login to access your personal dashboard</p>
           <a href="/login" class="google-signin-btn">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" alt="Google">
+            <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 1.16-4.53z" fill="#EA4335"/>
+            </svg>
             Sign in with Google
           </a>
         </div>
@@ -106,19 +111,19 @@
     <!-- Battery View -->
     <div id="batteryView" class="dashboard-view active">
       <div class="dashboard-grid">
-        <!-- Battery Gauge Ring (Large Card) -->
-        <div class="card glass-card card-large card-animate" style="animation-delay: 0ms">
+        <!-- Battery Gauge Ring (Hero Bento) -->
+        <div class="card glass-card card-bento-main card-animate" style="animation-delay: 0ms">
           <div class="card-header">
             <h3>BATTERY CORE</h3>
             <div class="card-icon">⚡</div>
           </div>
-          <div class="card-body">
+          <div class="card-body gauge-container">
             <div class="battery-gauge">
               <svg class="gauge-ring" viewBox="0 0 200 200">
                 <defs>
                   <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#00f3ff" id="gaugeStop1" />
-                    <stop offset="100%" stop-color="#0066ff" id="gaugeStop2" />
+                    <stop offset="0%" stop-color="#3b82f6" id="gaugeStop1" />
+                    <stop offset="100%" stop-color="#06b6d4" id="gaugeStop2" />
                   </linearGradient>
                 </defs>
                 <circle cx="100" cy="100" r="85" class="gauge-bg" />
@@ -133,8 +138,8 @@
           </div>
         </div>
 
-        <!-- Battery Status Display -->
-        <div class="card glass-card card-medium card-animate" style="animation-delay: 100ms">
+        <!-- System Status Badge (Bento Sidebar Top) -->
+        <div class="card glass-card card-bento-side card-animate" style="animation-delay: 100ms">
           <div class="card-header">
             <h3>SYSTEM STATUS</h3>
             <div class="card-icon">📊</div>
@@ -146,19 +151,19 @@
             </div>
             <div class="status-details">
               <div class="status-detail-item">
-                <span class="detail-label">Last Update</span>
+                <span class="detail-label">Last Telemetry</span>
                 <span class="detail-value" id="lastUpdate">--</span>
               </div>
               <div class="status-detail-item">
-                <span class="detail-label">Data Points</span>
+                <span class="detail-label">Active Points</span>
                 <span class="detail-value" id="dataPoints">0</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Battery Health Analytics -->
-        <div class="card glass-card card-small card-animate" style="animation-delay: 150ms">
+        <!-- Battery Health Analytics (Bento Square) -->
+        <div class="card glass-card card-bento-square card-animate" style="animation-delay: 150ms">
           <div class="card-header">
             <h3>BATTERY HEALTH</h3>
             <div class="card-icon">❤️</div>
@@ -172,16 +177,15 @@
               <div class="health-bar-fill" id="healthBarFill"></div>
             </div>
             <div class="health-details">
-              <div class="health-detail has-tooltip"
-                data-tooltip="Original factory capacity of your battery when brand new">
+              <div class="health-detail has-tooltip" data-tooltip="Original factory capacity">
                 <span>Design</span>
                 <span id="designCapacity">-- mWh</span>
               </div>
-              <div class="health-detail has-tooltip" data-tooltip="Maximum capacity your battery can hold today">
+              <div class="health-detail has-tooltip" data-tooltip="Maximum capacity today">
                 <span>Current</span>
                 <span id="currentCapacity">-- mWh</span>
               </div>
-              <div class="health-detail has-tooltip" data-tooltip="Number of full 0-100% charge/discharge loops">
+              <div class="health-detail has-tooltip" data-tooltip="Charge/discharge loops">
                 <span>Cycles</span>
                 <span id="cycleCount">--</span>
               </div>
@@ -189,37 +193,34 @@
           </div>
         </div>
 
-        <!-- Mini Stats Cards -->
-        <div class="card glass-card card-mini card-animate" style="animation-delay: 300ms">
-          <div class="mini-stat">
-            <div class="mini-stat-label">VOLTAGE</div>
-            <div class="mini-stat-value" id="voltage">--</div>
+        <!-- Contextual Metrics Box (Bento Staggered) -->
+        <div class="card glass-card card-bento-square card-animate" style="animation-delay: 200ms">
+          <div class="card-header">
+            <h3>CONTEXTUAL CORE</h3>
+            <div class="card-icon">🧬</div>
+          </div>
+          <div class="card-body metrics-bento-grid">
+            <div class="mini-stat">
+              <div class="mini-stat-label">VOLTAGE</div>
+              <div class="mini-stat-value" id="voltage">--</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-label">TEMPERATURE</div>
+              <div class="mini-stat-value" id="temperature">--</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-label">POWER DRAW</div>
+              <div class="mini-stat-value" id="powerDraw">--</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-label">SESSIONS</div>
+              <div class="mini-stat-value" id="sessions">--</div>
+            </div>
           </div>
         </div>
 
-        <div class="card glass-card card-mini card-animate" style="animation-delay: 325ms">
-          <div class="mini-stat">
-            <div class="mini-stat-label">TEMPERATURE</div>
-            <div class="mini-stat-value" id="temperature">--</div>
-          </div>
-        </div>
-
-        <div class="card glass-card card-mini card-animate" style="animation-delay: 350ms">
-          <div class="mini-stat">
-            <div class="mini-stat-label">POWER DRAW</div>
-            <div class="mini-stat-value" id="powerDraw">--</div>
-          </div>
-        </div>
-
-        <div class="card glass-card card-mini card-animate" style="animation-delay: 375ms">
-          <div class="mini-stat">
-            <div class="mini-stat-label">SESSIONS</div>
-            <div class="mini-stat-value" id="sessions">--</div>
-          </div>
-        </div>
-
-        <!-- Predictive Maintenance Analytics -->
-        <div class="card glass-card card-medium card-animate" style="animation-delay: 380ms">
+        <!-- Predictive Maintenance (Bento Wide) -->
+        <div class="card glass-card card-bento-wide card-animate" style="animation-delay: 300ms">
           <div class="card-header">
             <h3>PREDICTIVE MAINTENANCE</h3>
             <div class="card-icon">🧠</div>
@@ -234,12 +235,12 @@
               </div>
               <div class="analytics-row">
                 <div class="ana-stat has-tooltip"
-                  data-tooltip="Speed of battery consumption. High drain stresses the battery.">
+                  data-tooltip="Speed of battery consumption.">
                   <span class="ana-stat-label">DRAIN RATE</span>
                   <span class="ana-stat-value" id="drainRate">--%/hr</span>
                 </div>
                 <div class="ana-stat has-tooltip"
-                  data-tooltip="Percentage of time battery is kept below 90% plug capacity">
+                  data-tooltip="Plug capacity safety window">
                   <span class="ana-stat-label">CHARGE SAFETY</span>
                   <span class="ana-stat-value" id="chargeSafety">--%</span>
                 </div>
@@ -248,28 +249,21 @@
           </div>
         </div>
 
-        <!-- Charging Analytics -->
-        <div class="card glass-card card-medium card-animate" style="animation-delay: 385ms">
+        <!-- Charging Stats (Bento Stat) -->
+        <div class="card glass-card card-bento-stat card-animate" style="animation-delay: 350ms">
           <div class="card-header">
             <h3>CHARGING STATS</h3>
             <div class="card-icon">🔌</div>
           </div>
           <div class="card-body status-display">
             <div class="disk-metrics" style="margin-top:0">
-              <div class="disk-metric-row has-tooltip"
-                data-tooltip="Total time the laptop has been plugged in (tracked by service)">
+              <div class="disk-metric-row has-tooltip" data-tooltip="Total time plugged in">
                 <span class="metric-name">Time Charging:</span>
                 <span class="metric-val" id="timeCharging">-- m</span>
               </div>
-              <div class="disk-metric-row has-tooltip"
-                data-tooltip="Time kept plugged in above 90% (This accelerates degradation!)">
+              <div class="disk-metric-row has-tooltip" data-tooltip="High stress duration (>90%)">
                 <span class="metric-name">Time > 90%:</span>
                 <span class="metric-val" id="timeAbove90">-- m</span>
-              </div>
-              <div class="disk-metric-row has-tooltip"
-                data-tooltip="Safe Charge Time: Kept plugged in below stress thresholds">
-                <span class="metric-name">Safe Charge Time:</span>
-                <span class="metric-val disk-free" id="safeChargeTime">-- %</span>
               </div>
             </div>
           </div>
@@ -300,14 +294,14 @@
         </div>
 
 
-        <!-- Time Series Chart (Full Width) -->
-        <div class="card glass-card card-full card-animate" style="animation-delay: 400ms">
+        <!-- Time Series Chart (Bento Full) -->
+        <div class="card glass-card card-bento-full card-animate" style="animation-delay: 450ms">
           <div class="card-header">
             <h3>TIME SERIES ANALYSIS</h3>
             <div class="card-icon">📉</div>
           </div>
           <div class="card-body">
-            <canvas id="timeSeriesChart" height="300"></canvas>
+            <canvas id="timeSeriesChart" height="280"></canvas>
           </div>
         </div>
       </div>
@@ -316,19 +310,19 @@
     <!-- Disk View -->
     <div id="diskView" class="dashboard-view">
       <div class="dashboard-grid">
-        <!-- Disk Gauge Ring (Large Card) -->
-        <div class="card glass-card card-large card-animate" style="animation-delay: 0ms">
+        <!-- Disk Gauge Ring (Hero Bento) -->
+        <div class="card glass-card card-bento-main card-animate" style="animation-delay: 0ms">
           <div class="card-header">
             <h3>DISK CORE</h3>
             <div class="card-icon">💾</div>
           </div>
-          <div class="card-body">
+          <div class="card-body gauge-container">
             <div class="battery-gauge">
               <svg class="gauge-ring" viewBox="0 0 200 200">
                 <defs>
                   <linearGradient id="diskGaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#ff6b00" id="diskGaugeStop1" />
-                    <stop offset="100%" stop-color="#ff0080" id="diskGaugeStop2" />
+                    <stop offset="0%" stop-color="#f59e0b" id="diskGaugeStop1" />
+                    <stop offset="100%" stop-color="#ef4444" id="diskGaugeStop2" />
                   </linearGradient>
                 </defs>
                 <circle cx="100" cy="100" r="85" class="gauge-bg" />
@@ -344,10 +338,10 @@
           </div>
         </div>
 
-        <!-- Neural Health Prediction (NEW) -->
-        <div class="card glass-card card-medium card-animate" style="animation-delay: 50ms">
+        <!-- Neural Health Prediction (Bento Side) -->
+        <div class="card glass-card card-bento-side card-animate" style="animation-delay: 50ms">
           <div class="card-header">
-            <h3>NEURAL HEALTH CORE</h3>
+            <h3>NEURAL HEALTH</h3>
             <div class="card-icon">🧠</div>
           </div>
           <div class="card-body prediction-display">
@@ -365,14 +359,26 @@
           </div>
         </div>
 
-        <!-- Disk Status -->
-        <div class="card glass-card card-medium card-animate" style="animation-delay: 100ms">
+        <!-- Disk Analytics Group (Bento Square) -->
+        <div class="card glass-card card-bento-square card-animate" style="animation-delay: 150ms">
           <div class="card-header">
-            <h3>DISK STATUS</h3>
-            <div class="card-icon">📋</div>
+            <h3>DISK ANALYTICS</h3>
+            <div class="card-icon">ℹ️</div>
           </div>
-          <div class="card-body status-display">
-            <div class="disk-metrics">
+          <div class="card-body">
+            <div class="analytics-item">
+              <span class="ana-label">Model</span>
+              <span id="diskModel" class="ana-value" style="font-size: 10px;">--</span>
+            </div>
+            <div class="analytics-item">
+              <span class="ana-label">Interface</span>
+              <span id="diskInterface" class="ana-value">--</span>
+            </div>
+            <div class="analytics-item">
+              <span class="ana-label">Serial</span>
+              <span id="diskSerial" class="ana-value" style="font-size: 9px;">--</span>
+            </div>
+            <div class="disk-metrics" style="margin-top: 15px">
               <div class="disk-metric-row">
                 <span class="metric-name">Total:</span>
                 <span class="metric-val" id="diskTotal">-- GB</span>
@@ -385,28 +391,6 @@
                 <span class="metric-name">Free:</span>
                 <span class="metric-val disk-free" id="diskFree">-- GB</span>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Disk Details -->
-        <div class="card glass-card card-small card-animate" style="animation-delay: 150ms">
-          <div class="card-header">
-            <h3>DISK DETAILS</h3>
-            <div class="card-icon">ℹ️</div>
-          </div>
-          <div class="card-body">
-            <div class="analytics-item">
-              <span class="ana-label">Model</span>
-              <span class="ana-value" id="diskModel" style="font-size: 10px;">--</span>
-            </div>
-            <div class="analytics-item">
-              <span class="ana-label">Interface</span>
-              <span class="ana-value" id="diskInterface">--</span>
-            </div>
-            <div class="analytics-item">
-              <span class="ana-label">Serial</span>
-              <span class="ana-value" id="diskSerial" style="font-size: 10px;">--</span>
             </div>
           </div>
         </div>
@@ -433,71 +417,36 @@
             <div class="prediction-bar-container" style="margin-top: 10px; height: 4px;">
               <div class="prediction-bar-fill" id="efficiencyBarFill" style="width: 0%; background: linear-gradient(90deg, #00f3ff, #00ff88);"></div>
             </div>
-        <!-- Hardware Health -->
-        <div class="card glass-card card-small card-animate" style="animation-delay: 250ms">
+          </div>
+        </div>
+        <!-- Hardware & IO Cluster (Bento Wide) -->
+        <div class="card glass-card card-bento-wide card-animate" style="animation-delay: 300ms">
           <div class="card-header">
-            <h3>HARDWARE HEALTH</h3>
+            <h3>HARDWARE & I/O</h3>
             <div class="card-icon">⚡</div>
           </div>
-          <div class="card-body">
-            <div class="analytics-item">
-              <span class="ana-label">Temperature</span>
-              <span class="ana-value" id="diskTemp">-- °C</span>
+          <div class="card-body metrics-bento-grid">
+            <div class="mini-stat">
+              <div class="mini-stat-label">TEMPERATURE</div>
+              <div class="mini-stat-value" id="diskTemp">--</div>
             </div>
-            <div class="analytics-item">
-              <span class="ana-label">Power On Hours</span>
-              <span class="ana-value" id="diskPowerHours">-- h</span>
+            <div class="mini-stat">
+              <div class="mini-stat-label">READ RATE</div>
+              <div class="mini-stat-value" id="diskReadRate">--</div>
             </div>
-            <div class="analytics-item">
-              <span class="ana-label">Power Cycle Count</span>
-              <span class="ana-value" id="diskPowerCount">--</span>
+            <div class="mini-stat">
+              <div class="mini-stat-label">WRITE RATE</div>
+              <div class="mini-stat-value" id="diskWriteRate">--</div>
             </div>
-            <div class="analytics-item">
-              <span class="ana-label">Total Host Reads</span>
-              <span class="ana-value" id="diskTotalReads">-- GB</span>
-            </div>
-            <div class="analytics-item">
-              <span class="ana-label">Total Host Writes</span>
-              <span class="ana-value" id="diskTotalWrites">-- GB</span>
+            <div class="mini-stat">
+              <div class="mini-stat-label">POWER HOURS</div>
+              <div class="mini-stat-value" id="diskPowerHours">--</div>
             </div>
           </div>
         </div>
 
-        <div id="storageScanStatus" style="font-size: 9px; color: rgba(255,255,255,0.4); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Initializing scanner...</div>
-          </div>
-        </div>
-
-        <!-- I/O Rate Stats -->
-        <div class="card glass-card card-mini card-animate" style="animation-delay: 300ms">
-          <div class="mini-stat">
-            <div class="mini-stat-label">READ RATE</div>
-            <div class="mini-stat-value" id="diskReadRate">--</div>
-          </div>
-        </div>
-
-        <div class="card glass-card card-mini card-animate" style="animation-delay: 325ms">
-          <div class="mini-stat">
-            <div class="mini-stat-label">WRITE RATE</div>
-            <div class="mini-stat-value" id="diskWriteRate">--</div>
-          </div>
-        </div>
-
-        <div class="card glass-card card-mini card-animate" style="animation-delay: 350ms">
-          <div class="mini-stat">
-            <div class="mini-stat-label">READ OPS</div>
-            <div class="mini-stat-value" id="diskReadOps">--</div>
-          </div>
-        </div>
-
-        <div class="card glass-card card-mini card-animate" style="animation-delay: 375ms">
-          <div class="mini-stat">
-            <div class="mini-stat-label">WRITE OPS</div>
-            <div class="mini-stat-value" id="diskWriteOps">--</div>
-          </div>
-        </div>
-
-        <!-- Top Processes Table -->
-        <div class="card glass-card card-full card-animate" style="animation-delay: 400ms">
+        <!-- Top Processes (Bento Full) -->
+        <div class="card glass-card card-bento-full card-animate" style="animation-delay: 400ms">
           <div class="card-header">
             <h3>TOP DISK WRITERS</h3>
             <div class="card-icon">⚙️</div>
@@ -520,15 +469,15 @@
           </div>
         </div>
 
-        <!-- Disk Usage Chart -->
-        <div class="card glass-card card-full card-animate" style="animation-delay: 420ms">
+        <!-- Disk Active Time (Bento Full) -->
+        <div class="card glass-card card-bento-full card-animate" style="animation-delay: 450ms">
           <div class="card-header">
             <h3>DISK ACTIVE TIME</h3>
             <div class="card-icon">📊</div>
           </div>
           <div class="card-body">
             <div class="chart-container">
-              <canvas id="diskTimeSeriesChart"></canvas>
+              <canvas id="diskTimeSeriesChart" height="200"></canvas>
             </div>
           </div>
         </div>
@@ -538,8 +487,8 @@
     <!-- History View -->
     <div id="historyView" class="dashboard-view">
       <div class="dashboard-grid">
-        <!-- Time Range Controls -->
-        <div class="card glass-card card-full card-animate" style="animation-delay: 0ms">
+        <!-- History Range Control (Bento Square) -->
+        <div class="card glass-card card-bento-square card-animate" style="animation-delay: 0ms">
           <div class="card-header">
             <h3>HISTORY RANGE</h3>
             <div class="card-icon">🕐</div>
@@ -547,30 +496,30 @@
           <div class="card-body">
             <div class="history-controls">
               <div class="range-buttons">
-                <button class="range-btn range-active" data-range="1">1 Hour</button>
-                <button class="range-btn" data-range="6">6 Hours</button>
-                <button class="range-btn" data-range="24">24 Hours</button>
-                <button class="range-btn" data-range="custom" id="btnCustomRange">Custom</button>
+                <button class="range-btn range-active" data-range="1">1H</button>
+                <button class="range-btn" data-range="6">6H</button>
+                <button class="range-btn" data-range="24">24H</button>
+                <button class="range-btn" data-range="custom" id="btnCustomRange">...</button>
               </div>
-              <div class="custom-range" id="customRangeInputs" style="display:none;">
-                <label>Start <input type="datetime-local" id="historyStart"></label>
-                <label>End <input type="datetime-local" id="historyEnd"></label>
-                <button class="range-btn range-apply" id="btnApplyCustom">Apply</button>
+              <div class="custom-range" id="customRangeInputs" style="display:none; margin-top: 1rem;">
+                <input type="datetime-local" id="historyStart" style="width: 100%; margin-bottom: 0.5rem;">
+                <input type="datetime-local" id="historyEnd" style="width: 100%; margin-bottom: 0.5rem;">
+                <button class="range-btn range-apply" id="btnApplyCustom" style="width: 100%">Apply</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- History Chart -->
-        <div class="card glass-card card-full card-animate" style="animation-delay: 100ms">
+        <!-- History Analytics (Bento Main/Wide) -->
+        <div class="card glass-card card-bento-main card-animate" style="animation-delay: 100ms">
           <div class="card-header">
             <h3>BATTERY HISTORY</h3>
             <div class="card-icon">📈</div>
           </div>
           <div class="card-body">
-            <div id="historyChartLoading" class="empty-state">Select a range to load data...</div>
+            <div id="historyChartLoading" class="empty-state">Select a range to load telemetry...</div>
             <div class="chart-container">
-              <canvas id="historyChart"></canvas>
+              <canvas id="historyChart" height="300"></canvas>
             </div>
           </div>
         </div>
