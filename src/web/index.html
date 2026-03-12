@@ -16,8 +16,52 @@
     <canvas id="neuralNetwork"></canvas>
   </div>
 
-  <!-- Main Content -->
-  <main class="main-content">
+  <!-- Landing Page -->
+  <section id="landingPage" class="landing-page">
+    <div class="landing-content card-animate">
+      <div class="landing-hero">
+        <h1 class="glitch-text" data-text="NEURAL CORE">NEURAL CORE</h1>
+        <p class="landing-tagline">Advanced Battery & Disk Predictive Maintenance</p>
+      </div>
+      
+      <div class="landing-card glass-card">
+        <div class="features-list">
+          <div class="feature-item">
+            <span class="feature-icon">⚡</span>
+            <div class="feature-text">
+              <h4>Battery Intelligence</h4>
+              <p>Real-time analytics and health score tracking.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">💾</span>
+            <div class="feature-text">
+              <h4>Disk Neural Core</h4>
+              <p>Predictive failure prevention using GPU-accelerated ML.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">🔍</span>
+            <div class="feature-text">
+              <h4>Data Isolation</h4>
+              <p>Securely monitor your personal hardware metrics.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-box">
+          <p>Login to access your personal dashboard</p>
+          <a href="/login" class="google-signin-btn">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" alt="Google">
+            Sign in with Google
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content (Dashboard) -->
+  <main class="main-content" id="dashboardApp" style="display: none;">
     <!-- Top Bar -->
     <header class="top-bar glass-card">
       <div class="top-bar-left">
@@ -41,6 +85,14 @@
         </div>
       </div>
       <div class="top-bar-right">
+        <div id="authSection" class="auth-section">
+          <!-- Login button here will be hidden when dashboard is shown, but keeping for logout -->
+          <div id="userProfile" class="user-profile">
+            <img id="userAvatar" src="" alt="User" class="user-avatar">
+            <span id="userName" class="user-name">--</span>
+            <button id="btnLogout" class="logout-btn">Logout</button>
+          </div>
+        </div>
         <div class="power-source" id="powerSource">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" />

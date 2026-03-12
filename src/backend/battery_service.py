@@ -650,7 +650,8 @@ def main():
             
             # 2. Log to InfluxDB (Remote)
             try:
-                influx_manager.log_data(battery_data, disk_data)
+                user_email = os.environ.get("USER_EMAIL", "unknown")
+                influx_manager.log_data(battery_data, disk_data, user_email=user_email)
             except Exception as e:
                 print(f"⚠️ InfluxDB task error: {e}")
             

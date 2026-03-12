@@ -2,6 +2,19 @@
 
 A complete, end-to-end Windows battery telemetry pipeline. It silently tracks your battery health in the background and uses a Machine Learning model (Random Forest Regressor trained on NASA Datasets) to predict your battery's risk of failure and degradation rate.
 
+## ⚙️ Setup
+
+Before running the dashboard, you must configure your environment:
+
+1.  **Environment Variables**: 
+    - Copy `.env.example` to `.env`.
+    - Fill in your `INFLUXDB` credentials, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET`.
+    - Set a secure `SECRET_KEY` for Flask.
+2.  **Install Dependencies**:
+    ```bash
+    pip install Flask Flask-Session Authlib python-dotenv requests psutil scikit-learn joblib
+    ```
+
 ## ⚡ Quick Start (Manual)
 **Double-click:** `run_dashboard.bat`
 The telemetry logger will start and open your dashboard at `http://localhost:3000`.

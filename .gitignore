@@ -18,12 +18,15 @@ coverage.xml
 .hypothesis/
 
 # Application Data (Auto-generated)
+data/
 battery_data.json
 disk_data.json
 battery_history.csv
 server.log
 battery_and_disk_agent/logs/
 silent_runner.vbs
+src/backend/data/
+tmp/
 
 # IDEs
 .vscode/

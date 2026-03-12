@@ -13,6 +13,7 @@ let currentBatteryData = null;
 let currentDiskData = null;
 let previousBatteryPercent = 0;
 let diskHistory = []; // For analytics
+let currentUser = null;
 
 /**
  * Initialize the application
@@ -30,15 +31,23 @@ function initApp() {
   // Set up tab switching
   setupTabNavigation();
 
-  // Subscribe to data updates
-  dataLoader.subscribeBattery(onBatteryDataUpdate);
-  dataLoader.subscribeDisk(onDiskDataUpdate);
+  // Initialize authentication (which will trigger data fetching if logged in)
+  initAuth();
 
   // Start live clock
   updateClock();
   setInterval(updateClock, 1000);
 
   console.log('✅ Battery & Disk Neural Core initialized');
+}
+
+/**
+ * Start data subscriptions
+ */
+function startDataSubscriptions() {
+  console.log('📡 Starting data subscriptions...');
+  dataLoader.subscribeBattery(onBatteryDataUpdate);
+  dataLoader.subscribeDisk(onDiskDataUpdate);
 }
 
 /**
@@ -1077,6 +1086,62 @@ function setupHistoryControls() {
         loadHistoryData(null, startInput.value + ':00', endInput.value + ':00');
       }
     });
+  }
+}
+
+/**
+ * Authentication management
+ */
+async function initAuth() {
+  const btnLogout = document.getElementById('btnLogout');
+  const userProfile = document.getElementById('userProfile');
+  const userAvatar = document.getElementById('userAvatar');
+  const userName = document.getElementById('userName');
+  
+  const landingPage = document.getElementById('landingPage');
+  const dashboardApp = document.getElementById('dashboardApp');
+
+  if (btnLogout) {
+    btnLogout.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.href = '/logout';
+    });
+  }
+
+  try {
+    const response = await fetch('/api/me');
+    const data = await response.json();
+
+    if (data.logged_in) {
+      currentUser = data;
+      
+      // Update UI
+      if (userProfile) userProfile.style.display = 'flex';
+      if (userAvatar) userAvatar.src = data.picture;
+      if (userName) userName.textContent = data.name;
+      
+      // Switch Views
+      if (landingPage) landingPage.classList.add('hidden');
+      if (dashboardApp) dashboardApp.style.display = 'block';
+      
+      // Start Data
+      startDataSubscriptions();
+      
+      console.log('👤 User logged in:', data.email);
+    } else {
+      currentUser = null;
+      
+      // Update UI
+      if (userProfile) userProfile.style.display = 'none';
+      
+      // Switch Views
+      if (landingPage) landingPage.classList.remove('hidden');
+      if (dashboardApp) dashboardApp.style.display = 'none';
+      
+      console.log('👤 User not logged in');
+    }
+  } catch (err) {
+    console.error('Auth check error:', err);
   }
 }
 

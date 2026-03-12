@@ -36,7 +36,7 @@ class InfluxDBManager:
                 print(f"❌ InfluxDB initialization failed: {e}")
                 self.client = None
 
-    def log_data(self, battery_data, disk_data):
+    def log_data(self, battery_data, disk_data, user_email="unknown"):
         if not self.client:
             return
 
@@ -49,6 +49,7 @@ class InfluxDBManager:
             if bat_ps:
                 p_bat = Point("battery_telemetry") \
                     .tag("device_id", self.device_id) \
+                    .tag("user_email", user_email) \
                     .field("percent", float(bat_ps.get("percent", 0))) \
                     .field("secsleft", int(bat_ps.get("secsleft", 0))) \
                     .field("power_plugged", bool(bat_ps.get("power_plugged", False))) \
@@ -63,6 +64,7 @@ class InfluxDBManager:
             if disk_usage:
                 p_disk = Point("disk_telemetry") \
                     .tag("device_id", self.device_id) \
+                    .tag("user_email", user_email) \
                     .tag("model", disk_curr.get("details", {}).get("model", "unknown")) \
                     .field("used_percent", float(disk_usage.get("percent", 0))) \
                     .field("used_bytes", int(disk_usage.get("used_bytes", 0))) \
