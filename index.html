@@ -381,7 +381,37 @@
             <div class="prediction-bar-container" style="margin-top: 10px; height: 4px;">
               <div class="prediction-bar-fill" id="efficiencyBarFill" style="width: 0%; background: linear-gradient(90deg, #00f3ff, #00ff88);"></div>
             </div>
-            <div id="storageScanStatus" style="font-size: 9px; color: rgba(255,255,255,0.4); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Initializing scanner...</div>
+        <!-- Hardware Health -->
+        <div class="card glass-card card-small card-animate" style="animation-delay: 250ms">
+          <div class="card-header">
+            <h3>HARDWARE HEALTH</h3>
+            <div class="card-icon">⚡</div>
+          </div>
+          <div class="card-body">
+            <div class="analytics-item">
+              <span class="ana-label">Temperature</span>
+              <span class="ana-value" id="diskTemp">-- °C</span>
+            </div>
+            <div class="analytics-item">
+              <span class="ana-label">Power On Hours</span>
+              <span class="ana-value" id="diskPowerHours">-- h</span>
+            </div>
+            <div class="analytics-item">
+              <span class="ana-label">Power Cycle Count</span>
+              <span class="ana-value" id="diskPowerCount">--</span>
+            </div>
+            <div class="analytics-item">
+              <span class="ana-label">Total Host Reads</span>
+              <span class="ana-value" id="diskTotalReads">-- GB</span>
+            </div>
+            <div class="analytics-item">
+              <span class="ana-label">Total Host Writes</span>
+              <span class="ana-value" id="diskTotalWrites">-- GB</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="storageScanStatus" style="font-size: 9px; color: rgba(255,255,255,0.4); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Initializing scanner...</div>
           </div>
         </div>
 

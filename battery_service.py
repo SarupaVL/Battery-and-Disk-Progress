@@ -28,6 +28,7 @@ except:
 previous_disk_io = None
 previous_process_writes = {}
 last_log_timestamp = 0  # To prevent duplicate logs within the same second
+ema_failure_probability = 0.0012 # Initial baseline
 
 # Storage Efficiency Tracker
 storage_efficiency = {
@@ -88,6 +89,47 @@ class StorageAnalyzer(threading.Thread):
             
             storage_efficiency["status"] = "complete"
             time.sleep(3600) # Re-scan every hour
+
+def get_powershell_metrics():
+    """Fallback to PowerShell for accurate NVMe stats on Windows"""
+    results = {}
+    try:
+        # Use a more direct cmd to avoid potential issues with piped commands in subprocess
+        # Get-PhysicalDisk | Get-StorageHealthReport 
+        cmd = ['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', 
+               'Get-PhysicalDisk | Get-StorageHealthReport | Select-Object -First 1 | ConvertTo-Json']
+        import subprocess
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8')
+        if output:
+            data = json.loads(output)
+            if data:
+                with open("ps_debug.log", "a") as df:
+                    df.write(f"PS HealthReport OK: {data.get('Temperature')} C\n")
+                results["temperature_c"] = data.get("Temperature")
+    except Exception as e:
+        with open("ps_debug.log", "a") as df:
+            df.write(f"PS HealthReport Error: {e}\n")
+    
+    try:
+        cmd = ['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', 
+               'Get-PhysicalDisk | Get-StorageReliabilityCounter | Select-Object -First 1 | ConvertTo-Json']
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8')
+        if output:
+            data = json.loads(output)
+            if data:
+                if not results.get("temperature_c"): 
+                    results["temperature_c"] = data.get("Temperature")
+                results["power_on_hours"] = data.get("PowerOnHours")
+                r_bytes = data.get("ReadTotalBytes")
+                w_bytes = data.get("WriteTotalBytes")
+                if r_bytes and 0 < r_bytes < 1e16: results["total_host_reads_gb"] = round(r_bytes / (1024**3), 2)
+                if w_bytes and 0 < w_bytes < 1e16: results["total_host_writes_gb"] = round(w_bytes / (1024**3), 2)
+    except Exception as e:
+        with open("ps_debug.log", "a") as df:
+            df.write(f"PS Reliability Error: {e}\n")
+
+    return {k: v for k, v in results.items() if v is not None and v != 0}
+
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding='utf-8')
@@ -213,47 +255,122 @@ def get_disk_data():
         return None
 
 
-def parse_smart_data(vendor_specific):
+def parse_smart_data(vendor_specific, is_nvme=False):
     """Parse raw 512-byte WMI SMART data buffer into attributes"""
-    # Attribute structure is 12 bytes each, starting at offset 2
-    # ID (1) | Status (2) | Threshold (1) | Value (1) | Worst (1) | Raw (6)
-    attributes = {}
+    results = {
+        "attributes": {},
+        "temperature_c": None,
+        "power_on_hours": None,
+        "power_on_count": None,
+        "total_host_reads_gb": None,
+        "total_host_writes_gb": None
+    }
+    
+    if not vendor_specific: return results
+    
     try:
-        for i in range(2, 506, 12):
+        # 1. Try SATA Layout (Standard for many SSDs even on NVMe bridges)
+        # Check for 0000 header which is common in SATA SMART
+        for i in range(2, len(vendor_specific) - 12, 12):
             attr_id = vendor_specific[i]
             if attr_id == 0: continue
             
-            # Raw value is 6 bytes little-endian starting at offset 5 relative to attr start
-            raw_val_bytes = vendor_specific[i+5 : i+11]
-            raw_val = int.from_bytes(raw_val_bytes, byteorder='little')
-            attributes[attr_id] = raw_val
+            # Standard SMART: ID(0), Flags(1-2), Value(3), Worst(4), Raw(5-10)
+            value = vendor_specific[i+3]
+            raw_val = int.from_bytes(vendor_specific[i+5 : i+11], byteorder='little')
+            results["attributes"][attr_id] = raw_val
+            
+            # SATA Mapping
+            if attr_id in [194, 190]: 
+                # Use Raw value if it's realistic (0-100), otherwise try Value field
+                temp = raw_val if 0 < raw_val < 100 else value
+                if results["temperature_c"] is None:
+                    results["temperature_c"] = temp
+            elif attr_id == 9: results["power_on_hours"] = raw_val
+            elif attr_id == 12: results["power_on_count"] = raw_val
+            elif attr_id == 241: results["total_host_writes_gb"] = round(raw_val * 512 / (1024**3), 2)
+            elif attr_id == 242: results["total_host_reads_gb"] = round(raw_val * 512 / (1024**3), 2)
+
+        # 2. Try NVMe Health Log Page Layout (standard NVMe offsets)
+        if len(vendor_specific) >= 64:
+            # Temperature is offset 1-2 (Kelvin)
+            temp_k = int.from_bytes(vendor_specific[1:3], byteorder='little')
+            if 250 < temp_k < 373 and results["temperature_c"] is None: 
+                results["temperature_c"] = temp_k - 273
+            
+            # Data Units Read/Written: Offset 32-47 and 48-63
+            # Unit is 512,000 bytes. Convert units directly to GB.
+            raw_reads = int.from_bytes(vendor_specific[32:48], 'little')
+            raw_writes = int.from_bytes(vendor_specific[48:64], 'little')
+            
+            r_gb = (raw_reads * 512000) / (1024**3)
+            w_gb = (raw_writes * 512000) / (1024**3)
+            
+            # NVMe specs often show huge numbers here; limit check to 500TB for sanity
+            if 0 < r_gb < 500000: results["total_host_reads_gb"] = round(r_gb, 2)
+            if 0 < w_gb < 500000: results["total_host_writes_gb"] = round(w_gb, 2)
+            
+            if len(vendor_specific) >= 144:
+                # NVMe Power Cycle Count (112) and Hours (128)
+                pc = int.from_bytes(vendor_specific[112:128], 'little')
+                if 0 < pc < 1000000: results["power_on_count"] = pc
+                ph = int.from_bytes(vendor_specific[128:144], 'little')
+                if 0 < ph < 1000000: results["power_on_hours"] = ph
     except:
         pass
-    return attributes
+    
+    # Final Sanity Check for Temperature
+    if results["temperature_c"] is not None:
+        if results["temperature_c"] > 100 or results["temperature_c"] < 0:
+            results["temperature_c"] = None
+            
+    return results
 
-def get_failure_prediction():
+def get_failure_prediction(is_nvme=False):
     """Run disk failure prediction with REAL SMART data and EMA smoothing"""
     global ema_failure_probability
     
-    if MODEL is None:
-        return 0.0012
+    advanced_metrics = {
+        "temperature_c": 35,
+        "power_on_hours": 0,
+        "power_on_count": 0,
+        "total_host_reads_gb": 0,
+        "total_host_writes_gb": 0
+    }
+    
+    if disk_analytics.MODEL is None:
+        return 0.0012, advanced_metrics
     
     try:
         # 1. Feature extraction from REAL SMART via WMI
-        features = {f: 0 for f in MODEL_COLUMNS}
+        features = {f: 0 for f in disk_analytics.MODEL_COLUMNS}
         
         real_smart_found = False
         try:
-            if is_admin():
+            if disk_analytics.is_admin():
                 c = wmi.WMI(namespace="root\\wmi")
                 smart_data = c.MSStorageDriver_ATAPISmartData()
                 if smart_data:
                     raw_data = smart_data[0].VendorSpecific
-                    parsed = parse_smart_data(raw_data)
+                    parsed_results = parse_smart_data(raw_data, is_nvme=is_nvme)
+                    parsed = parsed_results["attributes"]
                     
+                    for k in advanced_metrics:
+                        if parsed_results[k] is not None and parsed_results[k] != 0:
+                            advanced_metrics[k] = parsed_results[k]
+                    
+                    # 3. Fallback to PowerShell for even better accuracy/missing fields
+                    for k in ps_metrics:
+                        if ps_metrics[k] is not None and ps_metrics[k] != 0:
+                            # If we already have a realistic temperature from SMART (20-95 C), 
+                            # don't let PS (which often gives controller temp) overwrite it.
+                            if k == "temperature_c" and advanced_metrics[k] is not None and 20 < advanced_metrics[k] < 95:
+                                continue
+                            advanced_metrics[k] = ps_metrics[k]
+
                     id_map = {1: "smart_1_raw", 5: "smart_5_raw", 7: "smart_7_raw", 9: "smart_9_raw",
-                              187: "smart_187_raw", 188: "smart_188_raw", 193: "smart_193_raw",
-                              194: "smart_194_raw", 197: "smart_197_raw", 198: "smart_198_raw"}
+                               187: "smart_187_raw", 188: "smart_188_raw", 193: "smart_193_raw",
+                               194: "smart_194_raw", 197: "smart_197_raw", 198: "smart_198_raw"}
                     
                     for sid, fname in id_map.items():
                         features[fname] = parsed.get(sid, 0)
@@ -271,23 +388,23 @@ def get_failure_prediction():
         features["model_ST8000NM0055"] = 1
         
         # 2. Predict raw probability
-        vector = [features[col] for col in MODEL_COLUMNS]
+        vector = [features[col] for col in disk_analytics.MODEL_COLUMNS]
         input_data = np.array([vector])
-        raw_prob = float(MODEL.predict_proba(input_data)[0][1])
+        raw_prob = float(disk_analytics.MODEL.predict_proba(input_data)[0][1])
         
         # 3. Apply Exponential Moving Average (EMA) to smooth fluctuations
         # This prevents jerky jumps from 0 to 0.34 caused by transient sensor noise
-        ema_failure_probability = (raw_prob * EMA_ALPHA) + (ema_failure_probability * (1 - EMA_ALPHA))
+        ema_failure_probability = (raw_prob * disk_analytics.EMA_ALPHA) + (ema_failure_probability * (1 - disk_analytics.EMA_ALPHA))
         
         # 4. Noise Floor: If probability is extremely low, keep it at baseline
         if ema_failure_probability < 0.0001:
             ema_failure_probability = 0.000001
             
-        return ema_failure_probability
+        return ema_failure_probability, advanced_metrics
         
     except Exception as e:
         print(f"Prediction error: {e}")
-        return ema_failure_probability
+        return ema_failure_probability, advanced_metrics
 
 
 def generate_battery_data():
@@ -355,7 +472,8 @@ def generate_disk_data():
     except:
         pass
 
-    prediction = disk_analytics.get_failure_prediction(previous_disk_io)
+    is_nvme = "NVMe" in disk_details["interface"] or "NVMe" in disk_details["model"]
+    prediction, hardware_health = get_failure_prediction(is_nvme=is_nvme)
     
     return {
         "current": {
@@ -365,7 +483,8 @@ def generate_disk_data():
             "top_processes": disk["top_processes"],
             "failure_probability": prediction,
             "details": disk_details,
-            "active_time": disk.get("active_time", 0)
+            "active_time": disk.get("active_time", 0),
+            "hardware_health": hardware_health
         },
         "analytics": {
             "daily_growth_bytes": 0,
@@ -417,8 +536,36 @@ def log_to_csv(battery_data):
         print(f"❌ CSV write error: {e}")
 
 
+def is_admin():
+    """Check if script is running with Administrator privileges"""
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+
+def run_as_admin():
+    """Relaunch the script as Administrator"""
+    if is_admin():
+        return True
+    
+    script = os.path.abspath(sys.argv[0])
+    params = ' '.join([f'"{arg}"' for arg in sys.argv[1:]])
+    print(f"🔄 Neural Core: Requesting elevation to access hardware SMART data...")
+    try:
+        # 1 = SH_SHOW - Normal window
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, f'"{script}" {params}', None, 1)
+        sys.exit(0)
+    except Exception as e:
+        print(f"❌ Neural Core: Elevation failed: {e}")
+        return False
+
 def main():
     """Run background service"""
+    # Automatic Elevation
+    if not is_admin():
+        run_as_admin()
+        return
+
     # Singleton Lock
     lock_file = "battery_service.lock"
     if os.path.exists(lock_file):

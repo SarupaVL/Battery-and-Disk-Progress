@@ -117,6 +117,7 @@ function onDiskDataUpdate(data) {
   updateDiskTimeSeriesChart(data);
   updateNeuralHealth(data);
   updateStorageEfficiency(data);
+  updateHardwareHealth(data);
 }
 
 /**
@@ -316,6 +317,54 @@ function updateDiskAnalytics(data) {
   if (modelElem) modelElem.textContent = details.model || 'Unknown';
   if (interfaceElem) interfaceElem.textContent = details.interface || 'Unknown';
   if (serialElem) serialElem.textContent = details.serial || 'Unknown';
+}
+
+/**
+ * Update hardware health metrics (Temp, Power-on, etc)
+ */
+function updateHardwareHealth(data) {
+  const health = data.current.hardware_health;
+  if (!health) return;
+
+  const tempElem = document.getElementById('diskTemp');
+  const hoursElem = document.getElementById('diskPowerHours');
+  const countElem = document.getElementById('diskPowerCount');
+  const readsElem = document.getElementById('diskTotalReads');
+  const writesElem = document.getElementById('diskTotalWrites');
+
+  if (tempElem && health.temperature_c !== null) {
+      tempElem.textContent = health.temperature_c + ' °C';
+      tempElem.style.color = health.temperature_c > 60 ? '#ff4d4d' : (health.temperature_c > 50 ? '#ffcc00' : '#00ff88');
+  }
+
+  if (hoursElem) {
+      if (health.power_on_hours === 0 || health.power_on_hours === null) {
+          hoursElem.textContent = 'Admin Required';
+          hoursElem.style.fontSize = '10px';
+          hoursElem.style.color = 'rgba(255,255,255,0.3)';
+      } else {
+          hoursElem.textContent = (health.power_on_hours || 0).toLocaleString() + ' h';
+          hoursElem.style.fontSize = '';
+          hoursElem.style.color = '';
+      }
+  }
+
+  if (countElem) {
+      countElem.textContent = (health.power_on_count || 0).toLocaleString();
+      countElem.style.color = health.power_on_count > 0 ? '' : 'rgba(255,255,255,0.3)';
+  }
+  
+  if (readsElem) {
+      const val = health.total_host_reads_gb || 0;
+      readsElem.textContent = val > 1024 ? (val / 1024).toFixed(2) + ' TB' : val.toFixed(1) + ' GB';
+      readsElem.style.color = val > 0 ? '' : 'rgba(255,255,255,0.3)';
+  }
+  
+  if (writesElem) {
+      const val = health.total_host_writes_gb || 0;
+      writesElem.textContent = val > 1024 ? (val / 1024).toFixed(2) + ' TB' : val.toFixed(1) + ' GB';
+      writesElem.style.color = val > 0 ? '' : 'rgba(255,255,255,0.3)';
+  }
 }
 
 /**
