@@ -329,7 +329,7 @@ function updateTopProcesses(data) {
     const bytesFormatted = formatBytes(proc.write_bytes_delta);
     return `
       <tr>
-        <td>${proc.process_name || 'Unknown'}</td>
+        <td>${proc.name || 'Unknown'}</td>
         <td>${proc.pid}</td>
         <td>${bytesFormatted}</td>
       </tr>
