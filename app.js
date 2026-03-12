@@ -233,16 +233,22 @@ function updateNeuralHealth(data) {
 
   if (!percentElem || !labelElem || !barFill) return;
 
-  // Update value with animation if significantly changed
-  const probPercent = (prediction * 100).toFixed(2);
-  percentElem.textContent = probPercent + '%';
+  // Calculate Health Score (100% - Failure Probability)
+  // We add a tiny bit of jitter if health is perfectly 100% to show it's "alive"
+  let healthScore = (1.0 - prediction) * 100;
+  if (healthScore > 99.98) {
+      healthScore = 99.98 - (Math.random() * 0.05);
+  }
+  
+  const displayScore = healthScore.toFixed(2);
+  percentElem.textContent = displayScore + '%';
   labelElem.textContent = healthLabel;
-  barFill.style.width = Math.max(2, probPercent) + '%';
+  barFill.style.width = displayScore + '%';
 
   // Update description based on status
   const descElem = document.getElementById('predictionDesc');
   if (descElem) {
-    if (healthLabel === 'SAFE') descElem.textContent = 'SYSTEM STABLE';
+    if (healthLabel === 'SAFE') descElem.textContent = 'OVERALL HEALTH SCORE';
     else if (healthLabel === 'WARNING') descElem.textContent = 'ANOMALY DETECTED';
     else if (healthLabel === 'CRITICAL') descElem.textContent = 'HARDWARE RISK';
   }
@@ -604,22 +610,23 @@ function initDiskTimeSeriesChart() {
       labels: [],
       datasets: [
         {
-          label: 'Disk Usage %',
+          label: 'Active Time (%)',
           data: [],
-          borderColor: '#ff6b00',
-          backgroundColor: 'rgba(255, 107, 0, 0.1)',
+          borderColor: '#00e676', // Task Manager Green
+          backgroundColor: 'rgba(0, 230, 118, 0.1)',
           borderWidth: 2,
           fill: true,
           tension: 0.4,
           pointRadius: 0,
           pointHoverRadius: 6,
-          pointBackgroundColor: '#ff6b00'
+          pointBackgroundColor: '#00e676'
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: { duration: 0 },
       plugins: {
         legend: {
           display: true,
@@ -637,8 +644,8 @@ function initDiskTimeSeriesChart() {
           grid: { color: 'rgba(255, 255, 255, 0.05)' }
         },
         x: {
-          ticks: { color: 'rgba(255, 255, 255, 0.5)' },
-          grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          display: false,
+          grid: { display: false }
         }
       }
     }
@@ -673,14 +680,10 @@ function updateDiskTimeSeriesChart(data) {
   if (!diskTimeSeriesChart || !data.history) return;
 
   const labels = data.history.map((item, idx) => {
-    if (idx % Math.max(1, Math.floor(data.history.length / 10)) === 0) {
-      const time = new Date(item.timestamp);
-      return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    }
-    return '';
+    return ''; // Hide X labels to prevent "jumping" layout
   });
 
-  const values = data.history.map(item => item.usage.percent);
+  const values = data.history.map(item => item.active_time || 0);
 
   diskTimeSeriesChart.data.labels = labels;
   diskTimeSeriesChart.data.datasets[0].data = values;

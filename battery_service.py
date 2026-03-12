@@ -126,6 +126,18 @@ def get_disk_data():
         except:
             pass
         
+        # Get disk Active Time % via WMI
+        active_time = 0
+        try:
+            c_perf = wmi.WMI(namespace="root\\CIMV2")
+            perf_data = c_perf.Win32_PerfFormattedData_PerfDisk_PhysicalDisk()
+            for drive in perf_data:
+                if "_Total" in drive.Name:
+                    active_time = int(drive.PercentDiskTime)
+                    break
+        except:
+            pass
+            
         return {
             "usage": {
                 "total_bytes": disk_usage.total,
@@ -134,7 +146,8 @@ def get_disk_data():
                 "percent": float(disk_usage.percent)
             },
             "io_rates": disk_io_rates,
-            "top_processes": top_processes
+            "top_processes": top_processes,
+            "active_time": active_time
         }
     except:
         return None
@@ -291,7 +304,8 @@ def generate_disk_data():
             "io_rates": disk["io_rates"],
             "top_processes": disk["top_processes"],
             "failure_probability": prediction,
-            "details": disk_details
+            "details": disk_details,
+            "active_time": disk.get("active_time", 0)
         },
         "analytics": {
             "daily_growth_bytes": 0,
@@ -394,7 +408,8 @@ def main():
             disk_history.append({
                 "timestamp": disk_data["current"]["timestamp"],
                 "usage": disk_data["current"]["usage"],
-                "io_rates": disk_data["current"]["io_rates"]
+                "io_rates": disk_data["current"]["io_rates"],
+                "active_time": disk_data["current"]["active_time"]
             })
             
             # Keep last 100 entries in memory
