@@ -4,5 +4,5 @@ Authlib
 python-dotenv
 requests
 pandas
-influxdb-client-3
+influxdb3-python
 gunicorn
