@@ -616,6 +616,30 @@ a, button, .card, input { cursor: none; }
     border-color: var(--danger);
 }
 
+.download-agent-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-dim);
+    padding: 4px 12px;
+    border-radius: 0px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--transition);
+    letter-spacing: 0.05em;
+}
+
+.download-agent-btn:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 0 12px var(--primary-glow);
+}
+
 /* Dashboard Grid - Bento Style */
 .dashboard-grid {
     display: grid;

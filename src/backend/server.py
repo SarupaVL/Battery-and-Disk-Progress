@@ -6,6 +6,7 @@ import sys
 import json
 import csv
 import io
+import zipfile
 import requests
 from datetime import datetime, timedelta
 from flask import Flask, redirect, url_for, session, request, jsonify, send_from_directory, send_file
@@ -29,6 +30,7 @@ load_dotenv(os.path.join(ROOT_DIR, ".env"))
 STATIC_DIR = os.path.join(ROOT_DIR, "src", "web")
 DATA_DIR = os.path.join(ROOT_DIR, "data")
 CSV_FILE = os.path.join(DATA_DIR, "battery_history.csv")
+PRODUCTION = os.environ.get("PRODUCTION", "false").lower() == "true"
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='')
 app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24))
@@ -127,42 +129,53 @@ def battery_history():
         return jsonify({"error": "Invalid timestamp format. Use ISO 8601."}), 400
 
     # 1. Try InfluxDB first
+    influx_results = []
     if influx_manager.client:
-        results = influx_manager.query_battery_history(user_email, start_dt, end_dt)
-        if results:
-            return jsonify(sanitize_data(results))
+        res = influx_manager.query_battery_history(user_email, start_dt, end_dt)
+        if res:
+            influx_results = res
 
-    # 2. Fallback to local CSV
-    if not os.path.exists(CSV_FILE):
-        return jsonify([])
+    # In production, we strictly use InfluxDB
+    if PRODUCTION:
+        return jsonify(sanitize_data(influx_results))
 
-    results = []
-    try:
-        with open(CSV_FILE, "r") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                try:
-                    ts = datetime.fromisoformat(row['timestamp'])
-                except (ValueError, KeyError):
-                    continue
+    # 2. Add local CSV data (Development/Fallback)
+    csv_results = []
+    if os.path.exists(CSV_FILE):
+        try:
+            with open(CSV_FILE, "r") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    try:
+                        ts = datetime.fromisoformat(row['timestamp'])
+                    except (ValueError, KeyError):
+                        continue
 
-                if start_dt and ts < start_dt:
-                    continue
-                if end_dt and ts > end_dt:
-                    continue
+                    if start_dt and ts < start_dt:
+                        continue
+                    if end_dt and ts > end_dt:
+                        continue
 
-                results.append({
-                    "timestamp": row['timestamp'],
-                    "battery_percent": float(row.get('battery_percent', 0)),
-                    "power_plugged": row.get('power_plugged', 'False').lower() == 'true',
-                    "voltage": float(row.get('voltage', 0)),
-                    "design_capacity_mwh": float(row.get('design_capacity_mwh', 0)),
-                    "full_charge_capacity_mwh": float(row.get('full_charge_capacity_mwh', 0))
-                })
-    except Exception as e:
-        return jsonify({"error": f"Error reading CSV: {e}"}), 500
+                    csv_results.append({
+                        "timestamp": row['timestamp'],
+                        "battery_percent": float(row.get('battery_percent', 0)),
+                        "power_plugged": row.get('power_plugged', 'False').lower() == 'true',
+                        "voltage": float(row.get('voltage', 0)),
+                        "design_capacity_mwh": float(row.get('design_capacity_mwh', 0)),
+                        "full_charge_capacity_mwh": float(row.get('full_charge_capacity_mwh', 0))
+                    })
+        except Exception as e:
+            print(f"Error reading CSV: {e}")
 
-    return jsonify(sanitize_data(results))
+    # 3. Merge both sources (InfluxDB takes precedence)
+    merged = {r['timestamp']: r for r in csv_results}
+    for r in influx_results:
+        merged[r['timestamp']] = r
+
+    # Sort chronologically
+    final_results = sorted(merged.values(), key=lambda x: x['timestamp'])
+
+    return jsonify(sanitize_data(final_results))
 
 @app.route('/api/live')
 @require_auth
@@ -328,7 +341,10 @@ def get_live_data():
         except Exception as e:
             print(f"⚠️ Live InfluxDB query failed, falling back to local files: {e}")
 
-    # 2. Fallback to local JSON files (Development/Local Mode)
+    # 2. Fallback to local JSON files (Development/Local Mode only)
+    if PRODUCTION:
+        return jsonify(sanitize_data(data))
+
     try:
         bat_json = os.path.join(DATA_DIR, "battery_data.json")
         disk_json = os.path.join(DATA_DIR, "disk_data.json")
@@ -410,6 +426,102 @@ def battery_export():
         download_name=filename
     )
 
+@app.route('/api/download-agent')
+@require_auth
+def download_agent():
+    """Bundle the background agent with a user-specific .env and return as ZIP"""
+    user_email = session.get('user', {}).get('email', 'unknown')
+    
+    # Files to include in the agent package
+    agent_files = {
+        # Core scripts
+        "agent/battery_service.py": os.path.join(ROOT_DIR, "src", "backend", "battery_service.py"),
+        "agent/influx_storage.py": os.path.join(ROOT_DIR, "src", "backend", "influx_storage.py"),
+        "agent/battery_analytics.py": os.path.join(ROOT_DIR, "src", "analytics", "battery_analytics.py"),
+        "agent/disk_analytics.py": os.path.join(ROOT_DIR, "src", "analytics", "disk_analytics.py"),
+        # ML models
+        "agent/models/drain_ml_model.joblib": os.path.join(ROOT_DIR, "models", "drain_ml_model.joblib"),
+        "agent/models/Disk_ML/disk_failure_model_gpu.pkl": os.path.join(ROOT_DIR, "models", "Disk_ML", "disk_failure_model_gpu.pkl"),
+    }
+    
+    # Generate user-specific .env (InfluxDB creds only, NO OAuth secrets)
+    agent_env = (
+        f"# Battery & Disk Neural Core - Agent Configuration\n"
+        f"# Auto-generated for: {user_email}\n"
+        f"# Generated: {datetime.now().isoformat()}\n\n"
+        f"USER_EMAIL={user_email}\n\n"
+        f"# InfluxDB Cloud (shared telemetry database)\n"
+        f"INFLUXDB_TOKEN={os.environ.get('INFLUXDB_TOKEN', '')}\n"
+        f"INFLUXDB_ORG={os.environ.get('INFLUXDB_ORG', 'battery-disk-analytics')}\n"
+        f"INFLUXDB_HOST={os.environ.get('INFLUXDB_HOST', '')}\n"
+        f"INFLUXDB_DATABASE={os.environ.get('INFLUXDB_DATABASE', 'time_db')}\n"
+    )
+    
+    # Agent-specific requirements.txt
+    agent_requirements = (
+        "psutil\n"
+        "python-dotenv\n"
+        "influxdb3-python\n"
+        "pandas\n"
+        "pyarrow\n"
+        "numpy\n"
+        "scikit-learn\n"
+        "joblib\n"
+        "xgboost\n"
+        "wmi\n"
+        "pywin32\n"
+    )
+    
+    # Agent README
+    agent_readme = (
+        "# Battery & Disk Neural Core - Agent\n\n"
+        f"Configured for: **{user_email}**\n\n"
+        "## Setup\n\n"
+        "1. Install Python 3.10+\n"
+        "2. Extract this ZIP to a folder\n"
+        "3. Open a terminal in the `agent/` folder\n"
+        "4. Install dependencies:\n"
+        "   ```\n"
+        "   pip install -r requirements.txt\n"
+        "   ```\n"
+        "5. Run the agent:\n"
+        "   ```\n"
+        "   python battery_service.py\n"
+        "   ```\n\n"
+        "The agent will collect battery and disk metrics every 2 seconds\n"
+        "and send them to the shared InfluxDB database.\n\n"
+        "## Notes\n\n"
+        "- Run as Administrator for full SMART disk data access\n"
+        "- Or use `--no-elevate` flag for basic metrics without admin\n"
+        "- The `.env` file is pre-configured with your identity and database credentials\n"
+        "- **Do not share your `.env` file** — it contains database access tokens\n"
+    )
+    
+    # Build ZIP in memory
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Add Python files and models
+        for zip_path, fs_path in agent_files.items():
+            if os.path.exists(fs_path):
+                zf.write(fs_path, zip_path)
+        
+        # Add generated files
+        zf.writestr("agent/.env", agent_env)
+        zf.writestr("agent/requirements.txt", agent_requirements)
+        zf.writestr("agent/README.md", agent_readme)
+        
+        # Create empty directories the agent needs
+        zf.writestr("agent/data/.gitkeep", "")
+        zf.writestr("agent/logs/.gitkeep", "")
+    
+    zip_buffer.seek(0)
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=f"battery_disk_agent_{user_email.split('@')[0]}.zip"
+    )
+
 @app.route('/data/<path:filename>')
 @require_auth
 def serve_data(filename):
@@ -432,7 +544,8 @@ if __name__ == '__main__':
     if not os.environ.get("INFLUXDB_TOKEN"):
         print("⚠️ WARNING: INFLUXDB_TOKEN missing. Dashboard will operate in local mode (JSON/CSV).")
 
+    mode = "PRODUCTION" if PRODUCTION else "DEVELOPMENT"
     PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 3000
-    print(f"\n  Battery Dashboard Server Running (Flask)")
+    print(f"\n  Battery Dashboard Server Running (Flask) [{mode}]")
     print(f"  http://localhost:{PORT}")
-    app.run(host='0.0.0.0', port=PORT, debug=True)
+    app.run(host='0.0.0.0', port=PORT, debug=not PRODUCTION)

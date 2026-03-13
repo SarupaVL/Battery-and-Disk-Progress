@@ -1074,7 +1074,7 @@ async function loadHistoryData(hours, startLocal, endLocal) {
     // Map to Chart.js {x, y} format
     const points = data.map(row => ({
       x: new Date(row.timestamp),
-      y: row.battery_percent
+      y: row.percent !== undefined ? row.percent : row.battery_percent
     }));
 
     historyChart.data.datasets[0].data = points;
