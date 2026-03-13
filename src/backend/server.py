@@ -483,6 +483,7 @@ def download_agent():
         "agent/disk_analytics.py": os.path.join(ROOT_DIR, "src", "analytics", "disk_analytics.py"),
         # ML models
         "agent/models/drain_ml_model.joblib": os.path.join(ROOT_DIR, "models", "drain_ml_model.joblib"),
+        "agent/models/battery_rf_model.joblib": os.path.join(ROOT_DIR, "models", "battery_rf_model.joblib"),
         "agent/models/Disk_ML/disk_failure_model_gpu.pkl": os.path.join(ROOT_DIR, "models", "Disk_ML", "disk_failure_model_gpu.pkl"),
     }
     

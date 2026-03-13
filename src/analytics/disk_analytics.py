@@ -43,8 +43,17 @@ def run_as_admin():
         return False
 
 # Model Configuration
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-MODEL_PATH = os.path.join(ROOT_DIR, "models", "Disk_ML", "disk_failure_model_gpu.pkl")
+# When running as downloaded agent, the model is at ./models/Disk_ML/disk_failure_model_gpu.pkl
+# When running in source repo, it is at ../../models/Disk_ML/disk_failure_model_gpu.pkl
+curr_dir = os.path.dirname(os.path.abspath(__file__))
+agent_model_path = os.path.join(os.getcwd(), "models", "Disk_ML", "disk_failure_model_gpu.pkl")
+repo_model_path = os.path.abspath(os.path.join(curr_dir, "..", "..", "models", "Disk_ML", "disk_failure_model_gpu.pkl"))
+
+if os.path.exists(agent_model_path):
+    MODEL_PATH = agent_model_path
+else:
+    MODEL_PATH = repo_model_path
+
 MODEL = None
 
 try:

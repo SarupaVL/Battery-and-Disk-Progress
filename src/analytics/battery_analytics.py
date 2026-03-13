@@ -433,10 +433,15 @@ def calculate_risk_score(battery_health_percent=96.0,
     
     if ML_AVAILABLE:
         try:
-            model_path = os.path.join(ROOT_DIR, 'models', 'battery_rf_model.joblib')
-            if os.path.exists(model_path):
-                # Load the model
-                model = joblib.load(model_path)
+                # Resolve model path based on execution context (standalone agent vs repo)
+                agent_model_path = os.path.join(os.getcwd(), 'models', 'battery_rf_model.joblib')
+                repo_model_path = os.path.join(ROOT_DIR, 'models', 'battery_rf_model.joblib')
+                
+                model_path = agent_model_path if os.path.exists(agent_model_path) else repo_model_path
+                
+                if os.path.exists(model_path):
+                    # Load the model
+                    model = joblib.load(model_path)
                 
                 # Model expects: cycle, avg_voltage, avg_current, avg_temperature, discharge_time_sec
                 features = np.array([[cycle_count, current_voltage, current, current_temp, time_sec]])
