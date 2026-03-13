@@ -14,6 +14,11 @@ from flask_cors import CORS
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 import math
+
+# Add backend directory to sys.path so it can find local modules when run from WSGI
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.append(os.path.join(ROOT_DIR, "src", "backend"))
+
 from influx_storage import InfluxDBManager
 
 # Reconfigure stdout for UTF-8 on Windows
