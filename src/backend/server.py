@@ -341,6 +341,43 @@ def get_live_data():
             # Note: history and top_processes are omitted here as they are large 
             # and usually accessed via specialized endpoints or local fallback.
             
+            # If no data found at all in InfluxDB, return a placeholder structure 
+            # so the frontend doesn't crash before the first agent push.
+            if not data["battery"] and PRODUCTION:
+                data["battery"] = {
+                    "current": {
+                        "timestamp": datetime.now().isoformat(),
+                        "psutil": {"percent": 0, "secsleft": 0, "power_plugged": False},
+                        "voltage": 0, "temperature": 0, "power_draw": 0
+                    },
+                    "static": {"design_capacity_mwh": 0, "full_charge_capacity_mwh": 0, "cycle_count": 0},
+                    "analytics": {"battery_health_percent": 0, "estimated_runtime_minutes": 0, "total_sessions": 0},
+                    "battery_analytics": {
+                        "drain_rate_percent_per_hour": 0, "worst_drain_rate": 0, 
+                        "worst_drain_window": {"start": "", "end": ""}
+                    },
+                    "battery_summary": {"daily": {"average_drain_rate": 0, "max_drain_spike": 0}},
+                    "predictive_maintenance": {"battery_risk_score": 0, "risk_level": "PENDING ML DATA"},
+                    "charging_analytics": {"percent_time_above_90": 0, "time_charging_minutes": 0, "time_above_90_minutes": 0},
+                    "history": []
+                }
+            if not data["disk"] and PRODUCTION:
+                data["disk"] = {
+                    "current": {
+                        "timestamp": datetime.now().isoformat(),
+                        "usage": {"total_bytes": 0, "used_bytes": 0, "free_bytes": 0, "percent": 0},
+                        "io_rates": {"read_bytes_per_sec": 0, "write_bytes_per_sec": 0, "read_ops_per_sec": 0, "write_ops_per_sec": 0},
+                        "hardware_health": {"temperature_c": 0, "power_on_hours": 0, "power_on_count": 0, "total_host_reads_gb": 0, "total_host_writes_gb": 0},
+                        "top_processes": [], "failure_probability": 0,
+                        "details": {"model": "Awaiting Telemetry", "interface": "--", "serial": "--"}
+                    },
+                    "analytics": {
+                        "neural_health_label": "AWAITING DATA",
+                        "storage_efficiency": {"logical_bytes": 0, "physical_bytes": 0, "files_scanned": 0, "status": "pending", "efficiency_ratio": 1.0}
+                    },
+                    "history": []
+                }
+
             if data["battery"] and data["disk"]:
                 return jsonify(sanitize_data(data))
         except Exception as e:
