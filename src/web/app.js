@@ -182,7 +182,7 @@ function updateBatteryGauge(data) {
   const timeRemaining = data.analytics.estimated_runtime_minutes;
 
   // Animate gauge value
-  animateValue('gaugeValue', previousBatteryPercent, percent, 800, (val) => val.toFixed(1) + '%');
+  animateValue('gaugeValue', previousBatteryPercent, percent, 800, (val) => (val !== null && val !== undefined) ? val.toFixed(1) + '%' : '--%');
   previousBatteryPercent = percent;
 
   // Update gauge ring (circumference = 2 * PI * r = 2 * 3.14159 * 85 ≈ 534)
@@ -296,7 +296,7 @@ function updateNeuralHealth(data) {
       healthScore = 99.98 - (Math.random() * 0.05);
   }
   
-  const displayScore = healthScore.toFixed(2);
+  const displayScore = (healthScore !== null && healthScore !== undefined) ? healthScore.toFixed(2) : '--';
   percentElem.textContent = displayScore + '%';
   labelElem.textContent = healthLabel;
   barFill.style.width = displayScore + '%';
@@ -320,9 +320,10 @@ function updateNeuralHealth(data) {
  * Update disk status display
  */
 function updateDiskStatus(data) {
-  const totalGB = (data.current.usage.total_bytes / (1024 ** 3)).toFixed(2);
-  const usedGB = (data.current.usage.used_bytes / (1024 ** 3)).toFixed(2);
-  const freeGB = (data.current.usage.free_bytes / (1024 ** 3)).toFixed(2);
+  const usage = data.current.usage || {};
+  const totalGB = (usage.total_bytes !== null && usage.total_bytes !== undefined) ? (usage.total_bytes / (1024 ** 3)).toFixed(2) : '--';
+  const usedGB = (usage.used_bytes !== null && usage.used_bytes !== undefined) ? (usage.used_bytes / (1024 ** 3)).toFixed(2) : '--';
+  const freeGB = (usage.free_bytes !== null && usage.free_bytes !== undefined) ? (usage.free_bytes / (1024 ** 3)).toFixed(2) : '--';
 
   const totalElem = document.getElementById('diskTotal');
   const usedElem = document.getElementById('diskUsed');
@@ -341,6 +342,7 @@ function updateDiskStatus(data) {
  */
 function updateIOStats(ioRates) {
   const formatBytesPerSec = (bytes) => {
+    if (bytes === null || bytes === undefined) return '-- B/s';
     if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB/s';
     if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB/s';
     return bytes.toFixed(0) + ' B/s';
@@ -353,8 +355,8 @@ function updateIOStats(ioRates) {
 
   if (readRateElem) readRateElem.textContent = formatBytesPerSec(ioRates.read_bytes_per_sec);
   if (writeRateElem) writeRateElem.textContent = formatBytesPerSec(ioRates.write_bytes_per_sec);
-  if (readOpsElem) readOpsElem.textContent = ioRates.read_ops_per_sec.toFixed(1) + ' /s';
-  if (writeOpsElem) writeOpsElem.textContent = ioRates.write_ops_per_sec.toFixed(1) + ' /s';
+  if (readOpsElem) readOpsElem.textContent = (ioRates.read_ops_per_sec !== null && ioRates.read_ops_per_sec !== undefined) ? ioRates.read_ops_per_sec.toFixed(1) + ' /s' : '-- /s';
+  if (writeOpsElem) writeOpsElem.textContent = (ioRates.write_ops_per_sec !== null && ioRates.write_ops_per_sec !== undefined) ? ioRates.write_ops_per_sec.toFixed(1) + ' /s' : '-- /s';
 }
 
 /**
@@ -410,13 +412,13 @@ function updateHardwareHealth(data) {
   
   if (readsElem) {
       const val = health.total_host_reads_gb || 0;
-      readsElem.textContent = val > 1024 ? (val / 1024).toFixed(2) + ' TB' : val.toFixed(1) + ' GB';
+      readsElem.textContent = (val !== null && val !== undefined) ? (val > 1024 ? (val / 1024).toFixed(2) + ' TB' : val.toFixed(1) + ' GB') : '-- GB';
       readsElem.style.color = val > 0 ? '' : 'rgba(255,255,255,0.3)';
   }
   
   if (writesElem) {
       const val = health.total_host_writes_gb || 0;
-      writesElem.textContent = val > 1024 ? (val / 1024).toFixed(2) + ' TB' : val.toFixed(1) + ' GB';
+      writesElem.textContent = (val !== null && val !== undefined) ? (val > 1024 ? (val / 1024).toFixed(2) + ' TB' : val.toFixed(1) + ' GB') : '-- GB';
       writesElem.style.color = val > 0 ? '' : 'rgba(255,255,255,0.3)';
   }
 }
@@ -455,7 +457,7 @@ function updateStorageEfficiency(data) {
   // Calculate efficiency percentage (how much of physical is logical)
   if (stats.physical_bytes > 0) {
     const ratio = (stats.logical_bytes / stats.physical_bytes) * 100;
-    efficiencyElem.textContent = ratio.toFixed(2) + '%';
+    efficiencyElem.textContent = (ratio !== null && ratio !== undefined) ? ratio.toFixed(2) + '%' : '--%';
     barFill.style.width = Math.min(100, ratio) + '%';
   } else {
     efficiencyElem.textContent = '--%';
@@ -495,6 +497,7 @@ function updateTopProcesses(data) {
  * Format bytes to human readable
  */
 function formatBytes(bytes) {
+  if (bytes === null || bytes === undefined) return '--';
   if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
   if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
@@ -575,10 +578,10 @@ function updateMiniStats(data) {
   const powerDraw = document.getElementById('powerDraw');
   const sessions = document.getElementById('sessions');
 
-  if (voltage) voltage.textContent = data.current.voltage + ' V';
-  if (temperature) temperature.textContent = data.current.temperature + '°C';
-  if (powerDraw) powerDraw.textContent = data.current.power_draw + ' W';
-  if (sessions) sessions.textContent = data.analytics.total_sessions;
+  if (voltage) voltage.textContent = (data.current.voltage !== null ? data.current.voltage : '--') + ' V';
+  if (temperature) temperature.textContent = (data.current.temperature !== null ? data.current.temperature : '--') + '°C';
+  if (powerDraw) powerDraw.textContent = (data.current.power_draw !== null ? data.current.power_draw : '--') + ' W';
+  if (sessions) sessions.textContent = data.analytics.total_sessions || '0';
 }
 
 /**
@@ -589,8 +592,8 @@ function updatePredictiveAnalytics(data) {
 
   const risk = data.predictive_maintenance.battery_risk_score;
   const level = data.predictive_maintenance.risk_level;
-  const drain = data.battery_analytics?.drain_rate_percent_per_hour || 0;
-  const safeCharge = 100 - (data.charging_analytics?.percent_time_above_90 || 0);
+  const drain = (data.battery_analytics?.drain_rate_percent_per_hour !== null && data.battery_analytics?.drain_rate_percent_per_hour !== undefined) ? data.battery_analytics.drain_rate_percent_per_hour : null;
+  const safeCharge = (data.charging_analytics?.percent_time_above_90 !== null && data.charging_analytics?.percent_time_above_90 !== undefined) ? 100 - data.charging_analytics.percent_time_above_90 : null;
 
   // Update Risk Score with animation
   animateValue('riskScore', 0, risk, 1000, (val) => Math.round(val));
@@ -617,10 +620,10 @@ function updatePredictiveAnalytics(data) {
 
   // Update other stats
   const drainRateElem = document.getElementById('drainRate');
-  if (drainRateElem) drainRateElem.textContent = drain + '%/hr';
+  if (drainRateElem) drainRateElem.textContent = (drain !== null ? drain.toFixed(1) : '--') + '%/hr';
 
   const chargeSafetyElem = document.getElementById('chargeSafety');
-  if (chargeSafetyElem) chargeSafetyElem.textContent = Math.round(safeCharge) + '%';
+  if (chargeSafetyElem) chargeSafetyElem.textContent = (safeCharge !== null ? Math.round(safeCharge) : '--') + '%';
 }
 
 /**
@@ -648,7 +651,7 @@ function updateExtraAnalytics(data) {
 
     if (timeCharging) timeCharging.textContent = formatMinutesToHours(data.charging_analytics.time_charging_minutes);
     if (timeAbove90) timeAbove90.textContent = formatMinutesToHours(data.charging_analytics.time_above_90_minutes);
-    if (safeChargeTime) safeChargeTime.textContent = (100 - data.charging_analytics.percent_time_above_90).toFixed(1) + ' %';
+    if (safeChargeTime) safeChargeTime.textContent = (data.charging_analytics.percent_time_above_90 !== null && data.charging_analytics.percent_time_above_90 !== undefined) ? (100 - data.charging_analytics.percent_time_above_90).toFixed(1) + ' %' : '-- %';
   }
 
   // Usage Summary
@@ -868,7 +871,7 @@ function animateValue(elementId, start, end, duration, formatter) {
     const eased = 1 - Math.pow(1 - progress, 3);
     const current = start + (end - start) * eased;
 
-    element.textContent = formatter ? formatter(current) : current.toFixed(0);
+    element.textContent = formatter ? formatter(current) : ((current !== null && current !== undefined) ? current.toFixed(0) : '--');
 
     if (progress < 1) {
       requestAnimationFrame(update);
@@ -1006,7 +1009,7 @@ function initHistoryChart() {
               return '';
             },
             label: function (item) {
-              return `Battery: ${item.parsed.y.toFixed(1)}%`;
+              return `Battery: ${(item.parsed.y !== null && item.parsed.y !== undefined) ? item.parsed.y.toFixed(1) : '--'}%`;
             }
           }
         }

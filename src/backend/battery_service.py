@@ -15,6 +15,10 @@ import wmi
 import csv
 import sys
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add required directories to sys.path to allow imports from other directories
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -168,6 +172,45 @@ def get_battery_data():
         }
     except:
         return None
+
+
+def get_battery_static_data():
+    """Get static battery hardware info (design capacity, cycle count, etc)"""
+    results = {
+        "design_capacity_mwh": 0,
+        "full_charge_capacity_mwh": 0,
+        "cycle_count": 0
+    }
+    
+    # 1. Try BatteryStaticData (WMI root/WMI)
+    try:
+        c = wmi.WMI(namespace="root\\WMI")
+        bat_static = c.BatteryStaticData()
+        if bat_static:
+            results["design_capacity_mwh"] = bat_static[0].DesignedCapacity
+            
+        bat_full = c.BatteryFullChargedCapacity()
+        if bat_full:
+            results["full_charge_capacity_mwh"] = bat_full[0].FullChargedCapacity
+            
+        bat_cycle = c.BatteryCycleCount()
+        if bat_cycle:
+            results["cycle_count"] = bat_cycle[0].CycleCount
+    except:
+        pass
+        
+    # 2. Fallback to Win32_Battery (WMI root/CIMV2) if needed
+    if results["design_capacity_mwh"] == 0:
+        try:
+            c = wmi.WMI()
+            for bat in c.Win32_Battery():
+                results["design_capacity_mwh"] = bat.DesignCapacity or 0
+                results["full_charge_capacity_mwh"] = bat.FullChargeCapacity or 0
+                # Win32_Battery doesn't usually have CycleCount
+        except:
+            pass
+            
+    return results
 
 
 def get_disk_data():
@@ -385,6 +428,14 @@ def generate_battery_data():
     if not bat:
         bat = {"percent": 50, "secsleft": 3600, "power_plugged": False}
     
+    static = get_battery_static_data()
+    # Fallback to hardcoded only if hardware check returns 0
+    design = static.get("design_capacity_mwh") or 50000
+    full = static.get("full_charge_capacity_mwh") or 48000
+    cycles = static.get("cycle_count") or 127
+    
+    health = round((full / design) * 100, 1) if design > 0 else 100
+    
     return {
         "current": {
             "timestamp": datetime.datetime.now().isoformat(),
@@ -398,12 +449,12 @@ def generate_battery_data():
             "power_draw": round(max(5.0, min(65.0, 15 + (100 - bat["percent"]) * 0.2)), 2)
         },
         "static": {
-            "design_capacity_mwh": 50000,
-            "full_charge_capacity_mwh": 48000,
-            "cycle_count": 127
+            "design_capacity_mwh": design,
+            "full_charge_capacity_mwh": full,
+            "cycle_count": cycles
         },
         "analytics": {
-            "battery_health_percent": 96,
+            "battery_health_percent": health,
             "estimated_runtime_minutes": int(bat["secsleft"] / 60),
             "total_sessions": 1
         },
@@ -522,8 +573,8 @@ def run_as_admin():
     params = ' '.join([f'"{arg}"' for arg in sys.argv[1:]])
     print(f"🔄 Neural Core: Requesting elevation to access hardware SMART data...")
     try:
-        # 1 = SH_SHOW - Normal window
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, f'"{script}" {params}', None, 1)
+        # 1 = SH_SHOW - Normal window. Pass ROOT_DIR as working directory.
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, f'"{script}" {params}', ROOT_DIR, 1)
         sys.exit(0)
     except Exception as e:
         print(f"❌ Neural Core: Elevation failed: {e}")
@@ -531,8 +582,8 @@ def run_as_admin():
 
 def main():
     """Run background service"""
-    # Automatic Elevation
-    if not is_admin():
+    # Automatic Elevation (skip with --no-elevate)
+    if not is_admin() and '--no-elevate' not in sys.argv:
         run_as_admin()
         return
 
@@ -609,14 +660,7 @@ def main():
             # 1. Append to persistent CSV (Analytics)
             log_to_csv(battery_data)
             
-            # 2. Log to InfluxDB (Remote)
-            try:
-                user_email = os.environ.get("USER_EMAIL", "unknown")
-                influx_manager.log_data(battery_data, disk_data, user_email=user_email)
-            except Exception as e:
-                print(f"⚠️ InfluxDB task error: {e}")
-            
-            # 3. Compute detailed analytics from CSV
+            # 2. Compute detailed analytics from CSV
             try:
                 is_plugged = battery_data['current']['psutil']['power_plugged']
                 drain_data = battery_analytics.calculate_drain_rate(is_plugged_in=is_plugged)
@@ -662,6 +706,13 @@ def main():
                 battery_data["battery_alerts"] = {}
                 battery_data["charging_analytics"] = {}
                 battery_data["predictive_maintenance"] = {}
+
+            # 3. Log to InfluxDB (Remote) - AFTER analytics computed
+            try:
+                user_email = os.environ.get("USER_EMAIL", "unknown")
+                influx_manager.log_data(battery_data, disk_data, user_email=user_email)
+            except Exception as e:
+                print(f"⚠️ InfluxDB task error: {e}")
 
             # 4. Write battery JSON (Dashboard)
             try:

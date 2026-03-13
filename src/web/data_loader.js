@@ -102,13 +102,37 @@ class DataLoader {
   }
 
   /**
-   * Fetch both data files
+   * Fetch both battery and disk data from the new live API endpoint
    */
   async fetchData() {
-    await Promise.all([
-      this.fetchBatteryData(),
-      this.fetchDiskData()
-    ]);
+    try {
+      const response = await fetch(`/api/live?t=${Date.now()}`);
+      if (!response.ok) {
+        if (response.status === 401) {
+            console.warn("🔐 Unauthorized: Please login to view live metrics.");
+            this.stop();
+            return false;
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.battery) {
+        this.batteryData = data.battery;
+        this.notifyBatterySubscribers();
+      }
+      
+      if (data.disk) {
+        this.diskData = data.disk;
+        this.notifyDiskSubscribers();
+      }
+      
+      return true;
+    } catch (error) {
+      console.warn(`⚠️ Live API Error: ${error.message}`);
+      return false;
+    }
   }
 
   /**
